@@ -7,7 +7,7 @@ import sys
 import asyncio
 
 import time
-from config import duration, ROUND_NUM
+from config import ROUND_LEN, ROUND_NUM
 from encryption import decrypt_private_key
 from keys import serverA_private_key
 from shuffle import shuffle, unshuffle
@@ -20,11 +20,11 @@ def get_new_message():
     pass
 
 # Receives messages from the client and stores them in a list
-def receive_messages_from_client(duration):
+def receive_messages_from_client(ROUND_LEN):
     start_time = time.time()                            # Start timer for batch round
     messages_list = []                                  # Initialize empty list to store messages
 
-    while time.time() - start_time < duration:          # Loop to receive messages until batch round ends
+    while time.time() - start_time < ROUND_LEN:          # Loop to receive messages until batch round ends
         new_message = get_new_message()                 # Function to receive a new message from the client
         messages_list.append(new_message)
 
@@ -41,18 +41,20 @@ def serverA_shuffle(messages_list):
 ## SEND TO CLIENT
 # Unshuffles the messages in messages_list using inverse permutation
 def serverA_unshuffle(serverB_unshuffled_messages):
-    serverA_unshuffled_messages = unshuffle(serverB_unshuffled_messages)
+    serverA_unshuffled_messages = unshuffle(serverB_unshuffled_messages, serverA_permutations_dictionary)
 
 
 serverA_permutations_dictionary = {}
 ################################################################################
+
+'''
 def handle_connection(conn: socket.socket, addr):
     try:
         data = conn.recv(4096)
         #do something with this data
     finally: 
         conn.close()
-        
+
 def main(): 
     if len(sys.argv) < 2:
         print(f"wrong argumets: {sys.argv[0]} port_num", file=sys.stderr)
@@ -62,7 +64,8 @@ def main():
     try:
         port = int(sys.argv[1], 10)
     except ValueError:
-        sys.stderr.write("Invalid Port\n")
+        sys.stderr.write("Invalid Port\n\")
 
 if __name__ == "__main__":
     raise SystemExit(main())
+'''

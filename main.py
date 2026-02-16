@@ -1,1 +1,2 @@
-permutations_dictionary = {}        # Initialize permutations dictionary before any rounds start.  Restart dictionary when ROUND_NUM maxes out
+# Run Re-implementation of Vuvuzela
+# Store temp public key for users
