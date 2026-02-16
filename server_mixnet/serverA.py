@@ -8,9 +8,10 @@ import asyncio
 
 import time
 from config import duration
-from cryptography.hazamat.primitives.asymmetric import rsa, padding
-from cryptography.hazamat.primitives import serialization, hashes
-from cryptography.hazamat.primitives import default_backend
+from encryption import decrypt_private_key
+from keys import serverA_private_key
+from shuffle import shuffle, unshuffle
+from main import permutations_dictionary
 
 ## RECEIVE FROM CLIENT
 
@@ -21,31 +22,26 @@ def get_new_message():
 
 # Receives messages from the client and stores them in a list
 def receive_messages_from_client(duration):
+    start_time = time.time()                            # Start timer for batch round
+    messages_list = []                                  # Initialize empty list to store messages
 
-    # Start timer for batch round
-    start_time = time.time()
-
-    # Initialize empty list to store messages
-    messages_list = []
-
-    # Loop to receive messages until batch round ends
-    while time.time() - start_time < duration:
-        new_message = get_new_message() # Function to receive a new message from the client
+    while time.time() - start_time < duration:          # Loop to receive messages until batch round ends
+        new_message = get_new_message()                 # Function to receive a new message from the client
         messages_list.append(new_message)
 
+# Decrypts first layer of encryption using server A's private key
+def serverA_decrypt(messages_list):
+    for messages in messages_list:
+        messages_list1 = decrypt_private_key(serverA_private_key, messages)
+
+# Shuffles the messages in messages_list using permutation
 def serverA_shuffle(messages_list):
-    # Decrypts first layer of encryption using server A's private key
-    
-    # Shuffles the messages in messages_list using permutation
+    serverA_shuffled_messages, i = shuffle(messages_list)
 
-    # Stores permutation and sender's temporary public key for server A
-
-    pass
-    
-
-
-
-
+## SEND TO CLIENT
+# Unshuffles the messages in messages_list using inverse permutation
+def serverA_unshuffle(serverB_unshuffled_messages):
+    serverA_unshuffled_messages = unshuffle(serverB_unshuffled_messages)
 
 def handle_connection(conn: socket.socket, addr):
     try:
@@ -53,10 +49,6 @@ def handle_connection(conn: socket.socket, addr):
         #do something with this data
     finally: 
         conn.close()
-
-
-def serverA():
-    pass
 
 
 def main(): 

@@ -1,0 +1,1 @@
+permutations_dictionary = {}        # Initialize permutations dictionary before any rounds start.  Restart dictionary when ROUND_NUM maxes out
