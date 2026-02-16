@@ -36,7 +36,7 @@ def serverA_decrypt(messages_list):
 
 # Shuffles the messages in messages_list using permutation
 def serverA_shuffle(messages_list):
-    serverA_shuffled_messages, i = shuffle(messages_list)
+    serverA_shuffled_messages = shuffle(messages_list)
 
 ## SEND TO CLIENT
 # Unshuffles the messages in messages_list using inverse permutation
