@@ -5,6 +5,26 @@ import threading
 import signal
 import sys
 import asyncio
+import time
+from config import duration
+
+## RECEIVE FROM CLIENT
+
+# Initialize 1000 empty mailboxes
+mailboxes = [None] * 1000
+
+# Receives messages from the client and stores them in a list
+def receive_messages_from_client(message, duration):
+
+    # Start timer for batch round
+    start_time = time.time()
+
+    # Initialize empty list to store messages
+    messages_list = []
+
+    # Loop to receive messages until batch round ends
+    while time.time() - start_time < duration:
+        messages_list = messages_list.append(message)
 
 def handle_connection(conn: socket.socket, addr):
     try:
@@ -12,6 +32,10 @@ def handle_connection(conn: socket.socket, addr):
         #do something with this data
     finally: 
         conn.close()
+
+
+def serverA():
+    pass
 
 
 def main(): 
