@@ -1,2 +1,9 @@
-private = "3876593914d5f5a60daa5380ccfe961b63a0890b2826219f5b05a7a5a1496d45"
-public = "be4420b424085b51bad775e8384cc15c6ebc22c49cf169cd8635f56caa28283e"
+# Helper Functions for Encryption
+from cryptography.hazamat.primitives.asymmetric import rsa, padding
+from cryptography.hazamat.primitives import serialization, hashes
+from cryptography.hazamat.primitives import default_backend
+
+# Decrypt Private Key
+def decrypt_private_key(private_key, ciphertext: bytes) -> str:
+    decrypted_ciphertext = private_key.decrypt(ciphertext, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)).decode("utf-8")
+    return decrypted_ciphertext
