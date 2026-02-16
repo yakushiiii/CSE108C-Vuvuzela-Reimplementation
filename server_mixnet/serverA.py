@@ -5,16 +5,22 @@ import threading
 import signal
 import sys
 import asyncio
+
 import time
 from config import duration
+from cryptography.hazamat.primitives.asymmetric import rsa, padding
+from cryptography.hazamat.primitives import serialization, hashes
+from cryptography.hazamat.primitives import default_backend
 
 ## RECEIVE FROM CLIENT
 
-# Initialize 1000 empty mailboxes
-mailboxes = [None] * 1000
+def get_new_message():
+    # Returns index of message for this round, encrypted content
+    # Listens on socket for new messages from client
+    pass
 
 # Receives messages from the client and stores them in a list
-def receive_messages_from_client(message, duration):
+def receive_messages_from_client(duration):
 
     # Start timer for batch round
     start_time = time.time()
@@ -24,7 +30,22 @@ def receive_messages_from_client(message, duration):
 
     # Loop to receive messages until batch round ends
     while time.time() - start_time < duration:
-        messages_list = messages_list.append(message)
+        new_message = get_new_message() # Function to receive a new message from the client
+        messages_list.append(new_message)
+
+def serverA_shuffle(messages_list):
+    # Decrypts first layer of encryption using server A's private key
+    
+    # Shuffles the messages in messages_list using permutation
+
+    # Stores permutation and sender's temporary public key for server A
+
+    pass
+    
+
+
+
+
 
 def handle_connection(conn: socket.socket, addr):
     try:

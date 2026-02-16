@@ -6,4 +6,7 @@ host = "127.0.0.1"
 port = 9000
 
 with socket.create_connection((host, port)) as s:
-    while
+    pass
+
+# encrypt message 3 layers using public key
+# shared symmetric key id with other user
