@@ -16,5 +16,5 @@ Setup dead-drop ->
 clients send their messages to a dead drop
 
 Setup shared key -> 
-Clients set up a shared key when they want to communicate every round. This id is what the current round's message is under.
+Clients set up a shared key when they want to communicate every round. This id is what the current round's message is under. Use hashing for the id
 
