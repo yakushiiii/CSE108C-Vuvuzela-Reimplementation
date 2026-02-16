@@ -7,11 +7,10 @@ import sys
 import asyncio
 
 import time
-from config import duration
+from config import duration, ROUND_NUM
 from encryption import decrypt_private_key
 from keys import serverA_private_key
 from shuffle import shuffle, unshuffle
-from main import permutations_dictionary
 
 ## RECEIVE FROM CLIENT
 
@@ -36,21 +35,24 @@ def serverA_decrypt(messages_list):
 
 # Shuffles the messages in messages_list using permutation
 def serverA_shuffle(messages_list):
-    serverA_shuffled_messages = shuffle(messages_list)
+    serverA_shuffled_messages, i = shuffle(messages_list)
+    serverA_permutations_dictionary[ROUND_NUM] = i   
 
 ## SEND TO CLIENT
 # Unshuffles the messages in messages_list using inverse permutation
 def serverA_unshuffle(serverB_unshuffled_messages):
     serverA_unshuffled_messages = unshuffle(serverB_unshuffled_messages)
 
+
+serverA_permutations_dictionary = {}
+################################################################################
 def handle_connection(conn: socket.socket, addr):
     try:
         data = conn.recv(4096)
         #do something with this data
     finally: 
         conn.close()
-
-
+        
 def main(): 
     if len(sys.argv) < 2:
         print(f"wrong argumets: {sys.argv[0]} port_num", file=sys.stderr)
