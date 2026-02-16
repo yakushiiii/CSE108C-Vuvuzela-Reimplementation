@@ -1,2 +1,3 @@
-<cryptography.hazmat.bindings._rust.openssl.x25519.X25519PrivateKey object at 0x10468bcb0>
-<cryptography.hazmat.bindings._rust.openssl.x25519.X25519PublicKey object at 0x10468b810>
+private = "3876593914d5f5a60daa5380ccfe961b63a0890b2826219f5b05a7a5a1496d45"
+
+public = "be4420b424085b51bad775e8384cc15c6ebc22c49cf169cd8635f56caa28283e"
