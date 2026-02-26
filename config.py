@@ -28,5 +28,5 @@ class Rounds:
     async def run(self):
         while True:
             await asyncio.sleep(self.round_len)
-            self.incrememnt()
+            self.increment()
             

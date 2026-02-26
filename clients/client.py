@@ -24,6 +24,7 @@ round_number = 1 #for now hardcoding the round_number
 #creating client class to establish public and private keys
 class Client:
     def __init__(self):
+        #long term keypair for use
         self.private_key = x25519.X25519PrivateKey.generate()
         self.public_key = self.private_key.public_key()
 
@@ -95,6 +96,7 @@ class Client:
         return epk_bytes + nonce + ciphertext
 
     def onion_encrypt(self, ciphertext, dead_drop_id, serverA_public_key=serverA_public_key, serverB_public_key=serverB_public_key, serverC_public_key=serverC_public_key): 
+        #encrypting entry server first to swap server last
         layer3 = self.layer_encryption(serverA_public_key, dead_drop_id + ciphertext)
         layer2 = self.layer_encryption(serverB_public_key, layer3)
         layer1 = self.layer_encryption(serverC_public_key, layer2)
@@ -106,10 +108,6 @@ if __name__ == "__main__":
     client_1 = Client()
     client_2 = Client()
 
-    message = "hello" #harcoding this for testing
-    #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #sock.connect(port)
-
     shared1 = client_1.shared_secret(client_2.public_key)
     shared2 = client_2.shared_secret(client_1.public_key)
 
@@ -117,12 +115,21 @@ if __name__ == "__main__":
     df_client_2 = client_2.diffie_hellman(client_1.public_key)
     assert df_client_1 == df_client_2
 
-    ciphertext = client_1.encrypt_message(df_client_1, message, round_number)
-    dead_drop_id = client_1.get_dead_drop_id(shared1, round_number)
+    while(1):
+        message = input('Enter your message:')
 
-    #onion encrypt the message
-    onion_msg = client_1.onion_encrypt(ciphertext, dead_drop_id)
+        if message == "":
+            message = "NO MESSAGE" 
+            
+        #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #sock.connect(port)
 
-    
-    #sock.send(onion_message)
-    #esponse = sock.recv(4096)
+        ciphertext = client_1.encrypt_message(df_client_1, message, round_number)
+        dead_drop_id = client_1.get_dead_drop_id(shared1, round_number)
+
+        #onion encrypt the message
+        onion_msg = client_1.onion_encrypt(ciphertext, dead_drop_id)
+
+        
+        #sock.send(onion_message)
+        #esponse = sock.recv(4096)

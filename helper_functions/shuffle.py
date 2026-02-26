@@ -1,5 +1,5 @@
 import random
-from main import permutations_dictionary
+from init import permutations_dictionary
 from config import ROUND_NUM
 
 # Shuffle messages in list and return shuffled message and indices
