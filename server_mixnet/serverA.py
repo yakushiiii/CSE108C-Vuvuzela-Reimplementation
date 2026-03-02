@@ -27,7 +27,7 @@ def get_bucket_index(dead_drop_id):
 def get_new_message():
     # Returns index of message for this round, encrypted content
     # Listens on socket for new messages from client
-    
+    # leave this alone for now
 # dead_drop_index(hash)(bytes) || encrypted message
 
 # Receives messages from the client and stores them in a list
