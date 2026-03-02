@@ -30,6 +30,15 @@ class Client:
         config.GLOBAL_CLIENT_COUNT += 1
         self.username = "client" + str(config.GLOBAL_CLIENT_COUNT) #for now hardcoding the username by the client number 
         #sending public key to directory.json file PUT THIS IN SERVER CODE
+
+    #registers user by sending the information the server needs to add them to the the directory json
+    def register_user(self, username, public_key):
+        
+        #have to serialize the public key to send over bytes
+        pk_bytes = self.public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw
+        )
         with open("directory.json", "r") as file:
             data = json.load(file)
 
@@ -38,9 +47,6 @@ class Client:
         with open("directory.json", "w") as file:
             json.dump(data, file, indent=4)
 
-    #registers user by sending the information the server needs to add them to the the directory json
-    def register_user():
-        return
     
     #ask entry server (serverA) for the json file to retrieve the user they want to communicate with:
     def retrieve_user_pubK(client_name):
