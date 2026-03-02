@@ -195,3 +195,14 @@ if __name__ == "__main__":
         
             sock.close()
 
+
+"""
+async def client(rounds):
+    while True:
+        r = await rounds.wait_next_round()
+        print("Client sending in round", r)
+
+        # compute dead drop using r
+        # build onion
+        # send to server
+"""

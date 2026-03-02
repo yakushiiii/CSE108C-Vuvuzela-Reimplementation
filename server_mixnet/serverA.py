@@ -93,3 +93,15 @@ def main():
         shuffled_messages_listA, serverA_permutations_dictionary = serverA_shuffle(decrypted_message_listA)
     except:
         print("Error in server A")
+
+"""
+async def serverA(rounds):
+    while True:
+        r = await rounds.wait_next_round()
+        print("Server A processing round", r)
+
+        # collect client messages
+        # shuffle
+        # forward
+
+"""
