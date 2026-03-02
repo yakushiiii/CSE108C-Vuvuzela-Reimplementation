@@ -131,7 +131,8 @@ class Client:
 
 #def initiate_conection(client_2):
 
-if __name__ == "__main__":
+#where we do all the functionality so it operates on a round system
+async def client_main():
     client_1 = Client()
     client_2 = Client()
 
@@ -145,55 +146,60 @@ if __name__ == "__main__":
 
     print("Welcome to our anonymouse private metadata messaging service!")
     print("Please ensure you leave this program running in the background in order to maintain privacy.")
+    while(1):
 
-    while (1): #this while loop is for initiating the conversationg between two clients
-        connect_client = input("Enter the username of client you want to communicate with: ")
-        #change this to ask server1 the directory.json file
-        if (connect_client == "" | connect_client == '\n' ):
-            print("Not a valid user.")
+        while (1): #this while loop is for initiating the conversationg between two clients
             connect_client = input("Enter the username of client you want to communicate with: ")
+            #change this to ask server1 the directory.json file
+            if (connect_client == "" | connect_client == '\n' ):
+                print("Not a valid user.")
+                connect_client = input("Enter the username of client you want to communicate with: ")
 
-        #find a way to ask the server for the public key of the client using the username. For now just hardcoding it
-        shared1 = client_1.shared_secret(client_2.public_key)
-        df_client_1 = client_1.diffie_hellman(client_2.public_key)
+            #find a way to ask the server for the public key of the client using the username. For now just hardcoding it
+            shared1 = client_1.shared_secret(client_2.public_key)
+            df_client_1 = client_1.diffie_hellman(client_2.public_key)
 
-        print("You are now communicating with", connect_client)
-        print('Enter "\\quit" to end the conversation')
-        while(1): #this while loop is for sending messages between two clients, we can break out of this loop to end the conversation
+            print("You are now communicating with", connect_client)
+            print('Enter "\\quit" to end the conversation')
+            while(1): #this while loop is for sending messages between two clients, we can break out of this loop to end the conversation
 
-            # creating the message to send
-            message = input('> ')
+                # creating the message to send
+                message = input('> ')
 
-            if message == "\\quit":
-                break
+                if message == "\\quit":
+                    break
 
-            #if no message then fill message with "NO MESSAGE" to prevent leaking information about message length
-            if message == "":
-                message = "NO MESSAGE" 
-                
-            #create socket and connect to server
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((server_A, port))
+                #if no message then fill message with "NO MESSAGE" to prevent leaking information about message length
+                if message == "":
+                    message = "NO MESSAGE" 
+                    
+                #create socket and connect to server
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect((server_A, port))
 
-            #encrypting message and establishing dead drop id
-            ciphertext = client_1.encrypt_message(df_client_1, message, round_number)
-            dead_drop_id = client_1.get_dead_drop_id(shared1, round_number)
+                #encrypting message and establishing dead drop id
+                ciphertext = client_1.encrypt_message(df_client_1, message, round_number)
+                dead_drop_id = client_1.get_dead_drop_id(shared1, round_number)
 
-            #onion encrypt the message
-            onion_msg = client_1.onion_encrypt(ciphertext, dead_drop_id)
+                #onion encrypt the message
+                onion_msg = client_1.onion_encrypt(ciphertext, dead_drop_id)
 
-            #need to send the message in bytes so using struct to do this
-            length = len(onion_msg)
-            length_bytes = struct.pack("!I", length) 
+                #need to send the message in bytes so using struct to do this
+                length = len(onion_msg)
+                length_bytes = struct.pack("!I", length) 
 
-            #sending the onion encrypted message to the server
-            sock.sendall(length_bytes + onion_msg)
+                #sending the onion encrypted message to the server
+                sock.sendall(length_bytes + onion_msg)
 
-            #receiving data
-            response = sock.recv(4096)
-    
+                #receiving data
+                response = sock.recv(4096)
         
-            sock.close()
+            
+                sock.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(client_main())
 
 
 """

@@ -23,6 +23,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
+
 ## client joining
 # when a client joins send them all the information so they can sync with the Rounds despite being on different machines
 # client should resync ever 30 seconds
