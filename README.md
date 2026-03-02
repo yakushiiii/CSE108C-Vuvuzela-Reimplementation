@@ -17,3 +17,6 @@ clients send and receive their messages through a dead drop
 
 Setup shared key -> 
 Clients set up a shared key when they want to communicate every round. This id is what the current round's mesasge is under.
+
+Seteup padding on every message ->
+make every message the same length, so should set up padding to ensure this.
