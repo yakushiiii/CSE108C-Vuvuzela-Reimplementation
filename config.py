@@ -3,7 +3,6 @@ import time
 import asyncio
 import os
 
-ROUND_LEN = 20
 SERVER_PORT = 9000
 connections = 0
 MAX_ROUND = 100000
@@ -17,10 +16,7 @@ class Rounds:
     def __init__(self):
         self.round_num = 0
         self.max_round = 100000
-        self.round_len = ROUND_LEN
-
-        self._event = asyncio.Event()
-        self._next_tick = time.monotonic() + self.round_len
+        self.cv = asyncio.Condition()
     
 
 
@@ -29,23 +25,34 @@ class Rounds:
         if self.round_num > self.max_round:
             self.round_num = 0
 
-    def signal_new_round(self):
-        self.increment()
-        self._event.set()
-        self._event = asyncio.Event()
+    async def signal_new_round(self) -> int:
+        async with self.cv:
+            self.increment()
+            self.cv.notify_all()
+            return self.round_num
 
-    async def wait_next_round(self) -> int:
-        await self._event.wait()
-        return self.round_num
+
+    async def wait_next_round(self, last_seen):
+        async with self.cv:
+            await self.cv.wait_for(lambda: self.round_num != last_seen)
+            return self.round_num
     
-    async def run(self):
-        while True:
-            now = time.monotonic()
-            sleep_time = max(0.0, self._next_tick - now)
-            await asyncio.sleep(sleep_time)
-            self._next_tick += self.round_len
-
-            self.signal_new_round()
 
 
-            
+#in serverA
+"""
+async def server_A(rounds: Rounds):
+    round_number = rounds.round_num
+    while True:
+        if (condition):
+            round_number = await rounds.signal_new_round()
+        await asyncio.sleep(0)
+"""
+
+#in clients
+"""""
+last = rounds.round_num
+while True:
+    rn = await rounds.wait_next_round(last)
+    last = rn
+'"""
