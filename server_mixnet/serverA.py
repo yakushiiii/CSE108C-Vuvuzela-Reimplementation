@@ -17,16 +17,8 @@ from shuffle import shuffle, unshuffle
 
 def setup():
     # Initialize dead drop with None values for each bucket
-    global NUM_BUCKETS 
-    NUM_BUCKETS = 100
-    global dead_drop
-    dead_drop = [None, None] * NUM_BUCKETS
-
-def get_bucket_index(dead_drop_hash):
-    # Returns index of bucket for this message
-    hash_to_int = int.from_bytes(dead_drop_hash, byteorder='big')
-    bucket_id = hash_to_int % NUM_BUCKETS
-    return bucket_id
+    global new_messages_list
+    new_messages_list = [None, None] * NUM_BUCKETS
 
 # Receives messages from the client and stores them in a list
 def receive_messages_from_client(ROUND_LEN):
@@ -35,29 +27,27 @@ def receive_messages_from_client(ROUND_LEN):
 
     while time.time() - start_time < ROUND_LEN:          # Loop to receive messages until batch round ends
         # Listen on socket for new messages from client
-        #message = socket.recv(4096)                            # Receive message from client (blocking call)
-        dead_drop_hash = message[0:32]                      # first 32 bytes of message is the hash of the dead drop index
-        encrypted_message = message[32:]                    # rest of the message is the encrypted content     
-        bucket_id = get_bucket_index(dead_drop_hash)          # Get bucket index for the new message
-        dead_drop.insert(bucket_id, encrypted_message)
+        #store socket at indexes to to know which clients to send it back to
+        message = socket.recv(4096)                            # Receive message from client (blocking call)
+        new_messages_list.append(message)
 
 # Decrypts first layer of encryption using server A's private key
-def serverA_decrypt(dead_drop):
-    for messages in dead_drop:
+def serverA_decrypt(new_messages_list):
+    for messages in new_messages_list:
         decrypted_message_listA = decrypt_private_key(serverA_private_key, messages)
     return decrypted_message_listA
 
 # Shuffles the messages in messages_list using permutation
 def serverA_shuffle(decrypted_messages_listA):
     serverA_shuffled_messages, i = shuffle(decrypted_messages_listA)
-    serverA_permutations_dictionary[ROUND_NUM] = i          #Store permutation inside permutations dictionary with round number
-    return serverA_shuffled_messages, serverA_permutations_dictionary
+    serverA_permutations = i          #Store permutation inside permutations dictionary with round number
+    return serverA_shuffled_messages, serverA_permutations
 
 ## SEND TO CLIENT
 # Unshuffles the messages in messages_list using inverse permutation
 def serverA_unshuffle(serverB_unshuffled_messages):
-    serverA_unshuffled_messages = unshuffle(serverB_unshuffled_messages, serverA_permutations_dictionary)
-
+    serverA_unshuffled_messages = unshuffle(serverB_unshuffled_messages, serverA_permutations)
+    return serverA_unshuffled_messages
 
 ################################################################################
 
@@ -84,13 +74,13 @@ if __name__ == "__main__":
     raise SystemExit(main())
 '''
 def main():
-    global serverA_permutations_dictionary 
-    serverA_permutations_dictionary = {}
+    global serverA_permutations
+    serverA_permutations = []
     try: 
         setup()
         receive_messages_from_client(ROUND_LEN)
-        decrypted_message_listA = serverA_decrypt(dead_drop)
-        shuffled_messages_listA, serverA_permutations_dictionary = serverA_shuffle(decrypted_message_listA)
+        decrypted_message_listA = serverA_decrypt(new_messages_list)
+        shuffled_messages_listA, serverA_permutations = serverA_shuffle(decrypted_message_listA)
     except:
         print("Error in server A")
 
