@@ -18,7 +18,7 @@ from shuffle import shuffle, unshuffle
 def setup():
     # Initialize dead drop with None values for each bucket
     global new_messages_list
-    new_messages_list = [None, None] * NUM_BUCKETS
+    new_messages_list = [None, None] * 100
 
 # Receives messages from the client and stores them in a list
 def receive_messages_from_client(ROUND_LEN):
