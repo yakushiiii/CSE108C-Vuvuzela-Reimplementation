@@ -56,3 +56,10 @@ while True:
     rn = await rounds.wait_next_round(last)
     last = rn
 '"""
+
+#make one for start and stop
+
+#start -> stop sending messages
+#wait 
+#start -> stop receiving messages
+#on stop receiving a new rounds starts
