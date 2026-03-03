@@ -6,6 +6,8 @@ import os
 SERVER_PORT = 9000
 connections = 0
 MAX_ROUND = 100000
+BATCHING = 20
+NUM_BUCKETS = 100
 
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
