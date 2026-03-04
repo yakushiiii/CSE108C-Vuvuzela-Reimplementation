@@ -2,6 +2,7 @@ import threading
 import time
 import asyncio
 import os
+from enum import Enum
 
 SERVER_PORT = 9000
 connections = 0
@@ -13,15 +14,18 @@ NUM_BUCKETS = 100
 GLOBAL_SALT = b"vuvuzela protocol v1"
 GLOBAL_KEY_LEN = 32
 
+#initializing phases to mark what part of round we are in
+class Phase(Enum):
+    SEND = 1
+    RECV = 2
+
 #defining a class for incrementing rounds and resetting when round number gets too high
 class Rounds:
     def __init__(self):
         self.round_num = 0
         self.max_round = 100000
-        self.cv_sendm = asyncio.Condition()
-        self.cv_recvm = asyncio.Condition()
-    
-
+        self.phase = Phase.SEND
+        self.cv = asyncio.Condition()
 
     def increment(self):
         self.round_num += 1
@@ -30,26 +34,29 @@ class Rounds:
     
     #signal client to start sending messages because the new round has started
     async def signal_new_round(self) -> int:
-        async with self.cv_recvm:
+        async with self.cv:
             self.increment()
-            self.cv_sendm.notify_all()
-            await self.cv_recvm.wait_for(lambda: self.signal_client_recv)
+            self.phase =  Phase.SEND
+            self.cv.notify_all()
             return self.round_num
+        
+    #signal for client to start receiving messages from serverA 
+    async def signal_client_recv(self, round_num):
+        async with self.cv:
+            if self.round_num == round_num:
+                self.phase = Phase.RECV
+                self.cv.notify_all()
 
-    async def signal_client_recv(self):
-        async with self.cv_recvm:
-            self.cv_recvm.notify_all()
 
-    #signal for client to stop sending messages and for 
-    async def stop_messaging(self):
-        async with self.cv_sendm and self.cv_recvm:
-            await self.cv_sendm.wait_for(lambda: self.signal_new_round())
-            self.cv_sendm.notify_all()
-
-    #wait period between client stopping sending messages and client starting to receive them
-    async def wait_period(self):
-        async with self.cv_recvm:
-            await self.cv_sendm.wait_for(lambda: self.signal_new_round())
+    #next two functions are wait period between client stopping sending messages and client starting to receive them
+    async def start_send(self, last_seen):
+        async with self.cv:
+            await self.cv.wait_for(lambda: self.phase == Phase.SEND and self.round_num != last_seen)
+            return self.round_num
+            
+    async def start_recv(self, r):
+        async with self.cv:
+            await self.cv.wait_for(lambda: self.phase == Phase.RECV and self.round_num == r)
             
  
     
