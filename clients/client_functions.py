@@ -14,7 +14,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import config
 from keys import serverA_public_key, serverB_public_key, serverC_public_key
-import client_functions
 
 server_A = "127.0.0.1"
 port = 9000
@@ -124,11 +123,10 @@ class Client:
 
     def onion_encrypt(self, ciphertext, dead_drop_id, serverA_public_key=serverA_public_key, serverB_public_key=serverB_public_key, serverC_public_key=serverC_public_key): 
         #encrypting entry server first to swap server last
-        inner = self.layer_encryption(serverC_public_key, dead_drop_id + ciphertext)
-        middle = self.layer_encryption(serverB_public_key, inner)
-        outer = self.layer_encryption(serverA_public_key, middle)
- 
-        return outer
+        layer3 = self.layer_encryption(serverA_public_key, dead_drop_id + ciphertext)
+        layer2 = self.layer_encryption(serverB_public_key, layer3)
+        layer1 = self.layer_encryption(serverC_public_key, layer2)
+        return layer1
 
 #def initiate_conection(client_2):
 
@@ -140,85 +138,3 @@ def recv_all(sock):
             raise ConnectionError("WARNING: Socket closed unexpectedly.")
         response += chunk
     return response
-
-#where we do all the functionality so it operates on a round system
-async def client_main():
-    client_1 = Client()
-    client_2 = Client()
-
-    shared1 = client_1.shared_secret(client_2.public_key)
-    shared2 = client_2.shared_secret(client_1.public_key)
-    assert shared1 == shared2
-
-    df_client_1 = client_1.diffie_hellman(client_2.public_key)
-    df_client_2 = client_2.diffie_hellman(client_1.public_key)
-    assert df_client_1 == df_client_2
-
-    print("Welcome to our anonymouse private metadata messaging service!")
-    print("Please ensure you leave this program running in the background in order to maintain privacy.")
-    while(1):
-
-        while (1): #this while loop is for initiating the conversationg between two clients
-            connect_client = input("Enter the username of client you want to communicate with: ")
-            #change this to ask server1 the directory.json file
-            if (connect_client == "" | connect_client == '\n' ):
-                print("Not a valid user.")
-                connect_client = input("Enter the username of client you want to communicate with: ")
-
-            #find a way to ask the server for the public key of the client using the username. For now just hardcoding it
-            shared1 = client_1.shared_secret(client_2.public_key)
-            df_client_1 = client_1.diffie_hellman(client_2.public_key)
-
-            print("You are now communicating with", connect_client)
-            print('Enter "\\quit" to end the conversation')
-            while(1): #this while loop is for sending messages between two clients, we can break out of this loop to end the conversation
-
-                # creating the message to send
-                message = input('> ')
-
-                if message == "\\quit":
-                    break
-
-                #if no message then fill message with "NO MESSAGE" to prevent leaking information about message length
-                if message == "":
-                    message = "NO MESSAGE" 
-                    
-                #create socket and connect to server
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect((server_A, port))
-
-                #encrypting message and establishing dead drop id
-                ciphertext = client_1.encrypt_message(df_client_1, message, round_number)
-                dead_drop_id = client_1.get_dead_drop_id(shared1, round_number)
-
-                #onion encrypt the message
-                onion_msg = client_1.onion_encrypt(ciphertext, dead_drop_id)
-
-                #need to send the message in bytes so using struct to do this
-                length = len(onion_msg)
-                length_bytes = struct.pack("!I", length) 
-
-                #sending the onion encrypted message to the server
-                sock.sendall(length_bytes + onion_msg)
-
-                #receiving data
-                response = sock.recv(4096)
-        
-            
-                sock.close()
-
-
-if __name__ == "__main__":
-    asyncio.run(client_main())
-
-
-"""
-async def client(rounds):
-    while True:
-        r = await rounds.wait_next_round()
-        print("Client sending in round", r)
-
-        # compute dead drop using r
-        # build onion
-        # send to server
-"""

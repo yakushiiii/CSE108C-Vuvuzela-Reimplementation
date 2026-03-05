@@ -119,20 +119,16 @@ while True:
 """
 --socket functions for receiving--
 
-def recv_all(sock, response_len):
+def recv_all(sock:
     response = b""
-    while len(response) < response_len:
-        chunk = sock.recv(response_len - len(response))
+    while len(response) < config.GLOBAL_MESSAGE_LEN:
+        chunk = sock.recv(config.GLOBAL_MESSAGE)LEN - len(response))
         if not chunk:
             raise ConnectionError("WARNING: Socket closed unexpectedly.")
         response += chunk
     return response
 
-def recv_message(sock):
-    # We are using length headers so the first four bytes will always be the length
-    r_len = recv_all(sock, 4)
-    message_len = struct.unpack("!I", r_len)[0] #stuct unpack returns a tuple so only need first value in tuple
-    return recv_all(sock, message_len)
+
 
 
 --how to use in main--
