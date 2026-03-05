@@ -2,6 +2,9 @@
 from cryptography.hazamat.primitives.asymmetric import rsa, padding
 from cryptography.hazamat.primitives import serialization, hashes
 from cryptography.hazamat.primitives import default_backend
+from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+import config
 
 # Decrypt Private Key
 def decrypt_private_key(private_key, ciphertext: bytes) -> str:
@@ -24,3 +27,16 @@ def server_encrypt(public_key, message_list):
     for message in message_list:
         encrypted_message_list.append(encrypt_public_key(public_key, message))
     return encrypted_message_list
+
+#diffie hellman key exchange
+def diffie_hellman(self, client_2_public_key):
+    info = b"first-layer-encryption"
+    shared_key = self.private_key.exchange(client_2_public_key)
+
+    encryption_key = HKDF(
+        algorithm = hashes.SHA256(),
+        length = config.GLOBAL_KEY_LEN,
+        salt = config.GLOBAL_SALT,
+        info = info,
+    ).derive(shared_key)
+    return encryption_key
