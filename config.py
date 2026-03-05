@@ -78,19 +78,20 @@ class Rounds:
 """
 asycn def init_rounds():
     rounds = Rounds()
-    asyncio.create_task(rounds.server_A())
+    asyncio.create_task(server_A(rounds))
     await asyncio.Event().wait()
 
 async def server_A(rounds: Rounds):
-
     while True:
-        round = await.rounds.signal_new_round()
+        round = await rounds.signal_new_round()
 
         if (condition1):
-            await.rounds.signal_client_wait(round)
+            await rounds.signal_client_wait(round)
 
         if (condition2):
-            await.rounds.signal_client_recv(round)
+            await rounds.signal_client_recv(round)
+
+        await asyncio.sleep(0)
 
 --in main func---
 asyncio.run(server_A())
