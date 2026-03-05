@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import config
 from keys import serverA_public_key, serverB_public_key, serverC_public_key
 import client_functions
+import encryption
 
 server_A = "127.0.0.1"
 port = 9000
@@ -53,83 +54,6 @@ class Client:
     def retrieve_user_pubK(client_name):
         return
 
-    #-------------------------------------------
-    # Encryption
-    #-------------------------------------------
-
-    #creating a shared secret
-    def shared_secret(self, client_2_public_key):
-        shared_key = self.private_key.exchange(client_2_public_key)
-        return shared_key
-    
-    #diffie hellman key exchange
-    def diffie_hellman(self, client_2_public_key):
-        info = b"first-layer-encryption"
-        shared_key = self.private_key.exchange(client_2_public_key)
-
-        encryption_key = HKDF(
-            algorithm = hashes.SHA256(),
-            length = config.GLOBAL_KEY_LEN,
-            salt = config.GLOBAL_SALT,
-            info = info,
-        ).derive(shared_key)
-        return encryption_key
-    
-    #encrypt actual message 
-    def encrypt_message(self, encryption_key, message, round_number): #add round num later
-        #for further security we pad all messages to be the same length
-        if len(message) > config.GLOBAL_MESSAGE_LEN:
-            raise ValueError("WARNING: The message is too long.")
-        padded_message = message + b"\00" * (100 - len(message))
-
-        #have to create a nonce, in the paper they use the round number
-        #for now lets use a fixed value
-        nonce = round_number.to_bytes(12, "big")
-        aesgcm = AESGCM(encryption_key)
-        ciphertext = aesgcm.encrypt(nonce, padded_message)
-        return ciphertext
-    
-    def decrypt_message(self, encryption_key, ciphertext): #add round num later
-        aesgcm = AESGCM(encryption_key)
-        nonce = round_number.to_bytes(12, "big") #hardcode the nonce for now
-        plaintext = aesgcm.decrypt(nonce, ciphertext)
-        return plaintext
-    
-    def get_dead_drop_id(shared_secret, round_number):
-        round_bytes = round_number.to_bytes(8, "big")
-        dead_drop_id = hashlib.sha256(shared_secret + round_bytes).digest()
-        return dead_drop_id[:16] #Vuvuzela uses 128-bit dead drop IDs
-    
-    #encrypting a layer, can call this three times for each server
-    def layer_encryption(self, server_public_key, payload):
-        server_epk = x25519.X25519PrivateKey.generate()
-        info = b'onion-layer-encryption'
-        sh_key = server_epk.exchange(server_public_key)
-        key = HKDF(
-            algorithm = hashes.SHA256(),
-            length = config.GLOBAL_KEY_LEN,
-            salt = config.GLOBAL_SALT,
-            info = info,
-        ).derive(sh_key)
-
-        aesgcm = AESGCM(key)
-        nonce = round_number.to_bytes(12, "big")
-        ciphertext = aesgcm.encrypt(nonce, payload, None)
-
-        epk_bytes = server_epk.public_bytes(
-        encoding=serialization.Encoding.Raw,
-        format=serialization.PublicFormat.Raw
-    )
-        return epk_bytes + nonce + ciphertext
-
-    def onion_encrypt(self, ciphertext, dead_drop_id, serverA_public_key=serverA_public_key, serverB_public_key=serverB_public_key, serverC_public_key=serverC_public_key): 
-        #encrypting entry server first to swap server last
-        inner = self.layer_encryption(serverC_public_key, dead_drop_id + ciphertext)
-        middle = self.layer_encryption(serverB_public_key, inner)
-        outer = self.layer_encryption(serverA_public_key, middle)
- 
-        return outer
-
 #def initiate_conection(client_2):
 
 def recv_all(sock):
@@ -146,12 +70,12 @@ async def client_main():
     client_1 = Client()
     client_2 = Client()
 
-    shared1 = client_1.shared_secret(client_2.public_key)
-    shared2 = client_2.shared_secret(client_1.public_key)
+    shared1 = encryption.shared_secret(client_1.private_key, client_2.public_key)
+    shared2 = encryption.shared_secret(client_2.private_key, client_1.public_key)
     assert shared1 == shared2
 
-    df_client_1 = client_1.diffie_hellman(client_2.public_key)
-    df_client_2 = client_2.diffie_hellman(client_1.public_key)
+    df_client_1 = encryption.diffie_hellman(client_1.private_key, client_2.public_key)
+    df_client_2 = encryption.diffie_hellman(client_2.private_key, client_1.public_key)
     assert df_client_1 == df_client_2
 
     print("Welcome to our anonymouse private metadata messaging service!")
@@ -166,8 +90,8 @@ async def client_main():
                 connect_client = input("Enter the username of client you want to communicate with: ")
 
             #find a way to ask the server for the public key of the client using the username. For now just hardcoding it
-            shared1 = client_1.shared_secret(client_2.public_key)
-            df_client_1 = client_1.diffie_hellman(client_2.public_key)
+            shared1 = encryption.shared_secret(client_1.private_key, client_2.public_key)
+            df_client_1 = encryption.diffie_hellman(client_1.private_key, client_2.public_key)
 
             print("You are now communicating with", connect_client)
             print('Enter "\\quit" to end the conversation')
@@ -188,11 +112,11 @@ async def client_main():
                 sock.connect((server_A, port))
 
                 #encrypting message and establishing dead drop id
-                ciphertext = client_1.encrypt_message(df_client_1, message, round_number)
-                dead_drop_id = client_1.get_dead_drop_id(shared1, round_number)
+                ciphertext = encryption.encrypt_message(df_client_1, message, round_number)
+                dead_drop_id = encryption.get_dead_drop_id(shared1, round_number)
 
                 #onion encrypt the message
-                onion_msg = client_1.onion_encrypt(ciphertext, dead_drop_id)
+                onion_msg = encryption.onion_encrypt(round_number, ciphertext, dead_drop_id)
 
                 #need to send the message in bytes so using struct to do this
                 length = len(onion_msg)
