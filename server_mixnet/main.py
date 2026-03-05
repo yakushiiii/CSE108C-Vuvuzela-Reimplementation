@@ -32,8 +32,7 @@ def main():
         try:
             decrypted_message_listC = server_decrypt(serverC_private_key, shuffled_messages_listB)
             shuffled_messages_listC, serverC_permutations = shuffle(decrypted_message_listC)
-            bucket_id = get_bucket_index(dead_drop_hash)
-            dead_drop = dead_drop_swap(bucket_id)
+            dead_drop = dead_drop_swap()
             unshuffled_messages_listC = unshuffle(shuffled_messages_listC, serverC_permutations)
             output_messages_listC = server_encrypt(serverC_public_key, unshuffled_messages_listC)
         except:

@@ -1,8 +1,5 @@
-
-
-def setupC():
-    global NUM_BUCKETS 
-    NUM_BUCKETS = 100
+import os
+from config import GLOBAL_MESSAGE_LEN, NUM_BUCKETS
 
 # Buckets in dead drop
 def get_bucket_index(dead_drop_hash):
@@ -11,10 +8,29 @@ def get_bucket_index(dead_drop_hash):
     bucket_id = hash_to_int % NUM_BUCKETS
     return bucket_id
 
-# Use dead drop to swap locations of the messages with the same shared keys
+# Use dead drop to swap locations of the messages with the same bucket id
+def dead_drop_swap(message_list):
+    user_buckets = {}
+    output = [None] * len(message_list)
 
-def dead_drop_swap(bucket_id):
-    dead_drop_hash = message[0:32]                      # first 32 bytes of message is the hash of the dead drop index
-    encrypted_message = message[32:]                    # rest of the message is the encrypted content     
-    dead_drop.insert(bucket_id, encrypted_message)
-    return dead_drop
+    # Separate hash and message
+    for i, message in enumerate(message_list):
+        dead_drop_hash = message[0:32]                      # first 32 bytes of message is the hash of the dead drop index
+    
+        bucket_id = get_bucket_index(dead_drop_hash)
+
+        # If there is a message in the bucket, swap
+        if bucket_id in user_buckets:
+            match_index, match_message = user_buckets.pop(bucket_id)
+            output[i] = match_message
+            output[match_index] = message
+
+        # If no messages are in the bucket, insert
+        else:
+            user_buckets[bucket_id] = (i, message)
+        
+    # If there are buckets which did not swap, fill with dummy messages
+    for y, None in user_buckets.values():
+        output[y] = os.random(GLOBAL_MESSAGE_LEN)
+
+    return output
