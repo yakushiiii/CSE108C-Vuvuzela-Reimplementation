@@ -17,7 +17,8 @@ GLOBAL_KEY_LEN = 32
 #initializing phases to mark what part of round we are in
 class Phase(Enum):
     SEND = 1
-    RECV = 2
+    WAIT = 2
+    RECV = 3
 
 #defining a class for incrementing rounds and resetting when round number gets too high
 class Rounds:
@@ -31,7 +32,8 @@ class Rounds:
         self.round_num += 1
         if self.round_num > self.max_round:
             self.round_num = 0
-    
+
+    #these three functions are for the server
     #signal client to start sending messages because the new round has started
     async def signal_new_round(self) -> int:
         async with self.cv:
@@ -40,6 +42,13 @@ class Rounds:
             self.cv.notify_all()
             return self.round_num
         
+    #signal for client to wait between sending and receiving messages
+    async def signal_client_wait(self, round_num):
+        async with self.cv:
+            if self.round_num == round_num:
+                self.phase = Phase.WAIT
+                self.cv.notify_all()
+
     #signal for client to start receiving messages from serverA 
     async def signal_client_recv(self, round_num):
         async with self.cv:
@@ -47,7 +56,7 @@ class Rounds:
                 self.phase = Phase.RECV
                 self.cv.notify_all()
 
-
+    #these three functions are for the client
     #next two functions are wait period between client stopping sending messages and client starting to receive them
     async def start_send(self, last_seen):
         async with self.cv:
@@ -58,29 +67,43 @@ class Rounds:
         async with self.cv:
             await self.cv.wait_for(lambda: self.phase == Phase.RECV and self.round_num == r)
             
+    async def start_wait(self, r):
+        async with self.cv:
+            await self.cv.wait_for(lambda: self.phase == Phase.WAIT and self.round_num == r)
  
     
 
 
 #in serverA
 """
+asycn def init_rounds():
+    rounds = Rounds()
+    asyncio.create_task(rounds.server_A())
+    await asyncio.Event().wait()
+
 async def server_A(rounds: Rounds):
-    round_number = rounds.round_num
+
     while True:
+        round = await.rounds.signal_new_round()
+
         if (condition1):
-            rounds.stop_messaging()
+            await.rounds.signal_client_wait(round)
 
         if (condition2):
-            round_number = await rounds.signal_new_round()
-        await asyncio.sleep(0)
+            await.rounds.signal_client_recv(round)
+
+--in main func---
+asyncio.run(server_A())
 """
 
 #in clients
 """""
 last = rounds.round_num
 while True:
-    rn = await rounds.wait_next_round(last)
-    last = rn
+    round = await rounds.startt_send(last)
+    last = round
+
+
 '"""
 
 #make one for start and stop
