@@ -13,6 +13,7 @@ NUM_BUCKETS = 100
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
 GLOBAL_KEY_LEN = 32
+GLOBAL_MESSAGE_LEN = 100
 
 #initializing phases to mark what part of round we are in
 class Phase(Enum):
@@ -116,7 +117,7 @@ while True:
 
 
 """
-socket functions for receiving:
+--socket functions for receiving--
 
 def recv_all(sock, response_len):
     response = b""
@@ -132,6 +133,17 @@ def recv_message(sock):
     r_len = recv_all(sock, 4)
     message_len = struct.unpack("!I", r_len)[0] #stuct unpack returns a tuple so only need first value in tuple
     return recv_all(sock, message_len)
+
+
+--how to use in main--
+
+
+
+
+response = recv_message(sock)
+
+sock.close()
+
 
 
 

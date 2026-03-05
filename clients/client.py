@@ -77,10 +77,9 @@ class Client:
     #encrypt actual message 
     def encrypt_message(self, encryption_key, message, round_number): #add round num later
         #for further security we pad all messages to be the same length
-        required_message_len = 100
-        if len(message) > required_message_len:
+        if len(message) > config.GLOBAL_MESSAGE_LEN:
             raise ValueError("WARNING: The message is too long.")
-        padded_message = message + b"\00" * (100 - len(required_message_len))
+        padded_message = message + b"\00" * (100 - len(message))
 
         #have to create a nonce, in the paper they use the round number
         #for now lets use a fixed value
