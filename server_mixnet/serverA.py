@@ -43,22 +43,16 @@ async def server_A(rounds: Rounds):
         round = await rounds.signal_new_round()
         #receiving data
         response = receive_messages_from_client
+
+        #have clients wait
+        await rounds.signal_client_wait(round)
+        print("Server A having clients wait...")
+
+        #parse response and separate messages in a list
         for i in range(0, len(response)):
-            message_list = message_list.append(i:i+468)
-        print("Server A Finished Taking Messages")
-        
-        wait = 1
+            message_list = message_list.append(response[i:i+468])
 
-        if wait == 1:
-            await rounds.signal_client_wait(round)
-
-        print("Server A: Messages Distributing...")
-        receive = 1
-
-        if receive == 1:
-            await rounds.signal_client_recv(round)
-
-        await asyncio.sleep(0)
+        print("Server A parsed messages")
 
 ################################################################################
 

@@ -5,6 +5,7 @@ from config import BATCHING
 from shuffle import shuffle, unshuffle
 from encryption import server_decrypt, server_encrypt, reencrypt_server
 from keys import serverA_private_key, serverB_private_key, serverC_private_key, serverA_public_key, serverB_public_key, serverC_public_key
+import asyncio
 
 def main():
     global serverA_permutations, serverB_permutations, serverC_permutations
@@ -46,12 +47,18 @@ def main():
         except:
             print("Error in server B unshuffle")
 
-        # Server A receives messages from server B, unshuffles them, re-encrypts them, and sends them to the client
+        # Server A receives messages from server B, unshuffles them and re-encrypts them
         try:
             unshuffled_messages_listA = unshuffle(output_messages_listB, serverA_permutations)
             output_messages_listA = server_encrypt(serverA_public_key, unshuffled_messages_listA)
         except:
             print("Error in server A unshuffle")
+
+        # Server A returns messages to client
+        try:
+            await rounds.signal_client_recv(round)
+        except:
+            print("Error returning messages to clients")
 
     except:
         print("Error running main")
