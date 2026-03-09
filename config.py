@@ -14,6 +14,7 @@ NUM_BUCKETS = 100
 GLOBAL_SALT = b"vuvuzela protocol v1"
 GLOBAL_KEY_LEN = 32
 GLOBAL_MESSAGE_LEN = 100
+GLOBAL_ENCRYPTED_LEN = 468
 
 #initializing phases to mark what part of round we are in
 class Phase(Enum):
