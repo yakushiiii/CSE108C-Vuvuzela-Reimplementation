@@ -3,7 +3,7 @@ from serverB import serverB_decrypt, serverB_shuffle, serverB_unshuffle
 from serverC import serverC_decrypt, serverC_shuffle, serverC_unshuffle, get_bucket_index, dead_drop_swap
 from config import BATCHING
 from shuffle import shuffle, unshuffle
-from encryption import server_decrypt, server_encrypt
+from encryption import server_decrypt, server_encrypt, reencrypt_server
 from keys import serverA_private_key, serverB_private_key, serverC_private_key, serverA_public_key, serverB_public_key, serverC_public_key
 
 def main():
@@ -32,8 +32,9 @@ def main():
         try:
             decrypted_message_listC = server_decrypt(serverC_private_key, shuffled_messages_listB)
             shuffled_messages_listC, serverC_permutations = shuffle(decrypted_message_listC)
-            dead_drop = dead_drop_swap()
-            unshuffled_messages_listC = unshuffle(shuffled_messages_listC, serverC_permutations)
+            swapped_messages = dead_drop_swap(shuffled_messages_listC)
+            reencrypted_message_listC = reencrypt_server()
+            unshuffled_messages_listC = unshuffle(reencrypted_message_listC, serverC_permutations)
             output_messages_listC = server_encrypt(serverC_public_key, unshuffled_messages_listC)
         except:
             print("Error in server C")
