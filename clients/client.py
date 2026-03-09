@@ -58,12 +58,13 @@ class Client:
 
 def recv_all(sock):
     response = b""
-    while len(response) < config.GLOBAL_MESSAGE_LEN:
-        chunk = sock.recv(config.GLOBAL_MESSAGE_LEN - len(response))
+    while len(response) < config.GLOBAL_ENCRYPTED_LEN:
+        chunk = sock.recv(config.GLOBAL_ENCRYPTED_LEN - len(response))
         if not chunk:
             raise ConnectionError("WARNING: Socket closed unexpectedly.")
         response += chunk
     return response
+
 
 #where we do all the functionality so it operates on a round system
 async def client_main():
@@ -80,10 +81,11 @@ async def client_main():
 
     print("Welcome to our anonymouse private metadata messaging service!")
     print("Please ensure you leave this program running in the background in order to maintain privacy.")
-    while(1):
+    last = server_A.rounds.round_num
 
+    while(1):
         while (1): #this while loop is for initiating the conversationg between two clients
-            connect_client = input("Enter the username of client you want to communicate with: ")
+            connect_client = input(prompt="Enter the username of client you want to communicate with: ")
             #change this to ask server1 the directory.json file
             if (connect_client == "" | connect_client == '\n' ):
                 print("Not a valid user.")
@@ -96,7 +98,8 @@ async def client_main():
             print("You are now communicating with", connect_client)
             print('Enter "\\quit" to end the conversation')
             while(1): #this while loop is for sending messages between two clients, we can break out of this loop to end the conversation
-
+                round = await server_A.rounds.start_send(last)
+                last = round
                 # creating the message to send
                 message = input('> ')
 
@@ -118,16 +121,23 @@ async def client_main():
                 #onion encrypt the message
                 onion_msg = encryption.onion_encrypt(round_number, ciphertext, dead_drop_id)
 
-
                 #sending the onion encrypted message to the server
                 sock.sendall(onion_msg)
-        
+
+                await server_A.rounds.start_wait(round)
+
+                await server_A.start_recv(round)
+
+                #receiving data
+                response = sock.recv(4096)
+                print(response + "\n")
             
                 sock.close()
 
 
 if __name__ == "__main__":
     asyncio.run(client_main())
+
 
 
 """
@@ -139,4 +149,9 @@ async def client(rounds):
         # compute dead drop using r
         # build onion
         # send to server
+"""
+""""
+while True:
+    round = await rounds.startt_send(last)
+    last = round
 """
