@@ -119,14 +119,12 @@ async def client_main():
                 onion_msg = encryption.onion_encrypt(round_number, ciphertext, dead_drop_id)
 
                 #need to send the message in bytes so using struct to do this
-                length = len(onion_msg)
-                length_bytes = struct.pack("!I", length) 
+                global length_onion
+                length_onion = len(onion_msg)
+                length_bytes = struct.pack("!I", length_onion) 
 
                 #sending the onion encrypted message to the server
-                sock.sendall(length_bytes + onion_msg)
-
-                #receiving data
-                response = sock.recv(4096)
+                sock.sendall(onion_msg)
         
             
                 sock.close()

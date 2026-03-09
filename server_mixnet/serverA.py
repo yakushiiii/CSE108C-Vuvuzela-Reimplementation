@@ -1,5 +1,5 @@
 from config import Rounds
-import socket
+import socket as sock
 import time
 import threading
 import signal
@@ -9,6 +9,7 @@ import hashlib
 
 import time
 from config import NUM_BUCKETS, BATCHING
+from client import length_onion
 
 ## RECEIVE FROM CLIENT
 
@@ -25,10 +26,39 @@ def receive_messages_from_client(BATCHING):
     while time.time() - start_time < BATCHING:          # Loop to receive messages until batch round ends
         # Listen on socket for new messages from client
         # store socket at indexes to to know which clients to send it back to
-        message = socket.recv(4096)                            # Receive message from client (blocking call)
-        new_messages_list.append(message)
+        response = sock.recv(4096)                          # Receive message from client (blocking call)
     
-    return new_messages_list
+    return response
+
+async def init_rounds():
+    rounds = Rounds()
+    asyncio.create_task(server_A(rounds))
+    await asyncio.Event().wait()
+
+async def server_A(rounds: Rounds):
+    while True:
+        wait = 0
+        receive = 0
+        message_list = []
+        round = await rounds.signal_new_round()
+        #receiving data
+        response = receive_messages_from_client
+        for i in range(0, len(response), length_onion):
+            message_list = message_list[i:i+length_onion]
+        print("Server A Finished Taking Messages")
+        
+        wait = 1
+
+        if wait == 1:
+            await rounds.signal_client_wait(round)
+
+        print("Server A: Messages Distributing...")
+        receive = 1
+
+        if receive == 1:
+            await rounds.signal_client_recv(round)
+
+        await asyncio.sleep(0)
 
 ################################################################################
 
