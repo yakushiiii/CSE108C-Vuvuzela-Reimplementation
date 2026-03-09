@@ -9,14 +9,6 @@ import hashlib
 
 import time
 from config import NUM_BUCKETS, BATCHING
-from client import length_onion
-
-## RECEIVE FROM CLIENT
-
-def setupA():
-    # Initialize dead drop with None values for each bucket
-    global new_messages_list
-    new_messages_list = [None, None] * NUM_BUCKETS
 
 # Receives messages from the client and stores them in a list
 def receive_messages_from_client(BATCHING):
@@ -36,23 +28,25 @@ async def init_rounds():
     await asyncio.Event().wait()
 
 async def server_A(rounds: Rounds):
-    while True:
-        wait = 0
-        receive = 0
-        message_list = []
-        round = await rounds.signal_new_round()
-        #receiving data
-        response = receive_messages_from_client
+    wait = 0
+    receive = 0
+    message_list = []
+    round = await rounds.signal_new_round()
+    #receiving data
+    response = receive_messages_from_client()
 
-        #have clients wait
-        await rounds.signal_client_wait(round)
-        print("Server A having clients wait...")
+    #have clients wait
+    await rounds.signal_client_wait(round)
+    print("Server A having clients wait...")
 
-        #parse response and separate messages in a list
-        for i in range(0, len(response)):
-            message_list = message_list.append(response[i:i+468])
+    #parse response and separate messages in a list
+    for i in range(0, len(response), 468):
+        message_list.append(response[i:i+468])
 
-        print("Server A parsed messages")
+    print("Server A parsed messages")
+
+    return message_list
+
 
 ################################################################################
 
@@ -78,15 +72,3 @@ def main():
 if __name__ == "__main__":
     raise SystemExit(main())
 '''
-
-"""
-async def serverA(rounds):
-    while True:
-        r = await rounds.wait_next_round()
-        print("Server A processing round", r)
-
-        # collect client messages
-        # shuffle
-        # forward
-
-"""

@@ -1,13 +1,17 @@
-from serverA import setupA, receive_messages_from_client, serverA_decrypt, serverA_shuffle, serverA_unshuffle
+from serverA import setupA, receive_messages_from_client, serverA_decrypt, serverA_shuffle, serverA_unshuffle, server_A
 from serverB import serverB_decrypt, serverB_shuffle, serverB_unshuffle
 from serverC import serverC_decrypt, serverC_shuffle, serverC_unshuffle, get_bucket_index, dead_drop_swap
-from config import BATCHING
+from config import BATCHING, Rounds, NUM_BUCKETS
 from shuffle import shuffle, unshuffle
 from encryption import server_decrypt, server_encrypt, reencrypt_server
 from keys import serverA_private_key, serverB_private_key, serverC_private_key, serverA_public_key, serverB_public_key, serverC_public_key
 import asyncio
 
-def main():
+async def init_rounds():
+    rounds = Rounds()
+    message_list = await server_A(rounds)
+
+async def main(rounds: Rounds):
     global serverA_permutations, serverB_permutations, serverC_permutations
     serverA_permutations = []
     serverB_permutations = []
@@ -15,8 +19,9 @@ def main():
     try: 
         # Server A receives messages from client, decrypts them, and shuffles them
         try:
-            setupA()
-            new_messages_list = receive_messages_from_client(BATCHING)
+            # Initialize dead drop with None values for each bucket
+            new_messages_list = [None, None] * NUM_BUCKETS
+            new_messages_list = init_rounds()
             decrypted_message_listA = server_decrypt(serverA_private_key, new_messages_list)
             shuffled_messages_listA, serverA_permutations = shuffle(decrypted_message_listA)
         except:
@@ -34,7 +39,7 @@ def main():
             decrypted_message_listC = server_decrypt(serverC_private_key, shuffled_messages_listB)
             shuffled_messages_listC, serverC_permutations = shuffle(decrypted_message_listC)
             swapped_messages = dead_drop_swap(shuffled_messages_listC)
-            reencrypted_message_listC = reencrypt_server()
+            reencrypted_message_listC = reencrypt_server(swapped_messages)
             unshuffled_messages_listC = unshuffle(reencrypted_message_listC, serverC_permutations)
             output_messages_listC = server_encrypt(serverC_public_key, unshuffled_messages_listC)
         except:
@@ -59,6 +64,8 @@ def main():
             await rounds.signal_client_recv(round)
         except:
             print("Error returning messages to clients")
+
+        await asyncio.sleep(0)
 
     except:
         print("Error running main")
