@@ -43,8 +43,8 @@ async def server_A(rounds: Rounds):
         round = await rounds.signal_new_round()
         #receiving data
         response = receive_messages_from_client
-        for i in range(0, len(response), length_onion):
-            message_list = message_list[i:i+length_onion]
+        for i in range(0, len(response)):
+            message_list = message_list.append(i:i+468)
         print("Server A Finished Taking Messages")
         
         wait = 1
