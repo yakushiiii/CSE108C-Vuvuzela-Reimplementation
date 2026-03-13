@@ -11,6 +11,21 @@
         }
     },
     "users": {
+        "user1": {
+            "public_key":""
+        },
+
+        "user2": {
+            "public_key":""
+        },
+
+        "user3": {
+            "public_key":""
+        },
+
+        "user4": {
+            "public_key":""
+        }
         
     }
 }
