@@ -1,8 +1,4 @@
 {
-    "round": {
-        "value": ""
-    },
-
     "servers": {
         "serverA": {
             "public_key": "be4420b424085b51bad775e8384cc15c6ebc22c49cf169cd8635f56caa28283e"
