@@ -10,9 +10,9 @@ import json
 
 import time
 from config import BATCHING
+from shuffle import shuffle
 
 round_number = 1
-DUMMY_MESSAGE = "this is a dummy message"
 
 clients = set()
 clients_lock = threading.Lock()
@@ -31,11 +31,7 @@ def broadcast(message: bytes):
             conn.close()
 
 def handle_client(conn, addr):
-
-    inbox = queue.Queue()
-
-    with clients_lock:
-        clients.add((conn, inbox))
+    client_messages = {}
     print(f"Client connected: {addr}")
 
     conn.settimeout(0.5)
@@ -46,17 +42,18 @@ def handle_client(conn, addr):
                 response = conn.recv(4096)
                 if not response:
                     break
-                inbox.put(response)
+                with clients_lock:
+                    client_messages[conn] = response
             except sock.timeout:
                 print(f"Client timeout")
                 continue
     finally:
         with clients_lock:
-            clients.discard((conn, inbox))
+            client_messages.pop(conn, None)
         conn.close()
         print(f"Client disconnected: {addr}")
             
-def batching(BATCHING):
+def batching(BATCHING, client_messages):
 
     batching_message = {
         "round_number": round_number,
@@ -69,20 +66,31 @@ def batching(BATCHING):
     while True:
         broadcast(batching_bytes)
         time.sleep(BATCHING)
-        message_list = []
+        batch_list = []
+        conn_list = []
 
         with clients_lock:
-            for conn, inbox in clients:
-                try:
-                    msg = inbox.get_nowait()
-                except queue.Empty:
-                    print("Queue Empty")
-                    msg = DUMMY_MESSAGE
-                message_list.append(msg)
+            for conn, msg in client_messages.items():
+                conn_list.append(conn)
+                batch_list.append(msg)
+                broadcast(b"BATCHING_END")
+            for x in client_messages:
+                client_messages[x] = None
+            
+        if not batch_list:
+            continue
 
-        broadcast(b"BATCHING_END")
-        round_number += 1
-        return message_list
+        return batch_list
+    
+def return_message(conn_list, batch_list, round_number):
+    for x in range(len(batch_list)):
+        try:
+            for conn in conn_list:
+                conn.sendall(batch_list)
+        except:
+            print("Message has no swapped one??")
+    print(f"Round {round_number} complete.  Incrementing")
+    round_number += 1
 
 
 def start_server(host="127.0.0.1", port=9000):
@@ -94,7 +102,7 @@ def start_server(host="127.0.0.1", port=9000):
         while True:
             conn, addr = s.accept()
             threading.Thread(
-                target=batching,
+                target=handle_client,
                 args=(conn, addr),
                 daemon=True
             ).start()
@@ -103,29 +111,3 @@ async def init_rounds():
     rounds = Rounds()
     asyncio.create_task(server_A(rounds))
     await asyncio.Event().wait()
-
-
-################################################################################
-
-'''
-def handle_connection(conn: socket.socket, addr):
-    try:
-        data = conn.recv(4096)
-        #do something with this data
-    finally: 
-        conn.close()
-
-def main(): 
-    if len(sys.argv) < 2:
-        print(f"wrong argumets: {sys.argv[0]} port_num", file=sys.stderr)
-        print(f"usage: {sys.argv[0]} <port>", file=sys.stderr)
-        return 1
-    
-    try:
-        port = int(sys.argv[1], 10)
-    except ValueError:
-        sys.stderr.write("Invalid Port\n\")
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-'''

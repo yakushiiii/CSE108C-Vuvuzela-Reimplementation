@@ -7,7 +7,7 @@ from enum import Enum
 SERVER_PORT = 9000
 connections = 0
 MAX_ROUND = 100000
-BATCHING = 20
+BATCHING = 5
 NUM_BUCKETS = 100
 
 #encryption global variables

@@ -1,4 +1,4 @@
-from serverA import setupA, receive_messages_from_client, serverA_decrypt, serverA_shuffle, serverA_unshuffle, server_A
+from serverA import handle_client, batching, broadcast, server_A
 from serverB import serverB_decrypt, serverB_shuffle, serverB_unshuffle
 from serverC import serverC_decrypt, serverC_shuffle, serverC_unshuffle, get_bucket_index, dead_drop_swap
 from config import BATCHING, Rounds, NUM_BUCKETS
@@ -22,6 +22,8 @@ async def main(rounds: Rounds):
             # Initialize dead drop with None values for each bucket
             new_messages_list = [None, None] * NUM_BUCKETS
             new_messages_list = init_rounds()
+            handle_client(conn, addr)
+            
             decrypted_message_listA = server_decrypt(serverA_private_key, new_messages_list)
             shuffled_messages_listA, serverA_permutations = shuffle(decrypted_message_listA)
         except:
