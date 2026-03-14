@@ -6,10 +6,12 @@ import signal, sys
 import queue
 import asyncio
 import hashlib
+import json
 
 import time
 from config import BATCHING
 
+round_number = 1
 DUMMY_MESSAGE = "this is a dummy message"
 
 clients = set()
@@ -55,8 +57,17 @@ def handle_client(conn, addr):
         print(f"Client disconnected: {addr}")
             
 def batching(BATCHING):
+
+    batching_message = {
+        "round_number": round_number,
+        "message": "BATCHING_START"
+    }
+
+    batching_string = json.dumps(batching_message)
+    batching_bytes = batching_string.encode()
+
     while True:
-        broadcast(b"BATCHING_START")
+        broadcast(batching_bytes)
         time.sleep(BATCHING)
         message_list = []
 
@@ -70,6 +81,7 @@ def batching(BATCHING):
                 message_list.append(msg)
 
         broadcast(b"BATCHING_END")
+        round_number += 1
         return message_list
 
 
