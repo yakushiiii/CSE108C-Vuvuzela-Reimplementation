@@ -2,25 +2,63 @@ from config import Rounds
 import socket as sock
 import time
 import threading
-import signal
-import sys
+import signal, sys
+import queue
 import asyncio
 import hashlib
 
 import time
 from config import NUM_BUCKETS, BATCHING
 
-# Receives messages from the client and stores them in a list
-def receive_messages_from_client(BATCHING):
+clients = set()
+clients_lock = threading.Lock()
 
-    start_time = time.time()                            # Start timer for batch round
+def broadcast(message: bytes):
+    dead = []
+    with clients_lock:
+        for conn in clients:
+            try:
+                conn.sendall(message)
+            except OSError:
+                dead.append(conn)
 
-    while time.time() - start_time < BATCHING:          # Loop to receive messages until batch round ends
-        # Listen on socket for new messages from client
-        # store socket at indexes to to know which clients to send it back to
-        response = sock.recv(4096)                          # Receive message from client (blocking call)
-    
-    return response
+        for conn in dead:
+            clients.remove(conn)
+            conn.close()
+
+def batching(conn, addr, BATCHING):
+    with clients_lock:
+        clients.add(conn)
+    print(f"Client connected: {addr}")
+
+    try:
+        start_time = time.time()                            # Start timer for batch round
+        while time.time() - start_time < BATCHING:          # Loop to receive messages until batch round ends
+
+            data = conn.recv(4096)
+            if not data:
+                break
+            # handle client message here
+        return data
+    finally:
+        with clients_lock:
+            clients.discard(conn)
+        conn.close()
+        print(f"Client disconnected: {addr}")
+
+def start_server(host="127.0.0.1", port=9000):
+    with sock.sock(sock.AF_INET, sock.SOCK_STREAM) as s:
+        s.bind((host, port))
+        s.listen()
+        print("Server listening")
+
+        while True:
+            conn, addr = s.accept()
+            threading.Thread(
+                target=handle_client,
+                args=(conn, addr),
+                daemon=True
+            ).start()
 
 async def init_rounds():
     rounds = Rounds()
