@@ -78,7 +78,7 @@ class Rounds:
 
 #in serverA
 """
-asycn def init_rounds():
+async def init_rounds():
     rounds = Rounds()
     asyncio.create_task(server_A(rounds))
     await asyncio.Event().wait()
@@ -96,7 +96,7 @@ async def server_A(rounds: Rounds):
         await asyncio.sleep(0)
 
 --in main func--
-asyncio.run(server_A())
+asyncio.run(init_rounds())
 """
 
 #in clients
