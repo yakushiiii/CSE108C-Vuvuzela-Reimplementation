@@ -163,3 +163,32 @@ def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, r
 # Server Encryption Functions
 # ---------------------------
 
+#from server A -> server C
+def server_layer_decryption(server_private_key, payload, round_number):
+    client_pubkey_bytes, cipher_len = struct.unpack("!32sI", payload[:48]) 
+    ciphertext = payload[48:48+cipher_len]
+    cl_public_key = x25519.X25519PublicKey.from_public_bytes(client_pubkey_bytes)   
+    info = b'onion-layer-encryption'
+    sh_key = server_private_key.exchange(cl_public_key)
+    key = HKDF(
+        algorithm = hashes.SHA256(),
+        length = config.GLOBAL_KEY_LEN,
+        salt = config.GLOBAL_SALT,
+        info = info,
+    ).derive(sh_key)
+
+    aesgcm = AESGCM(key)
+    nonce = round_number.to_bytes(12, "big")
+    ciphertext = aesgcm.decrypt(nonce, ciphertext, None)
+    #need to save this key for the way back.
+    return ciphertext, key
+
+#from server C -> server A
+def server_layer_encryption(shared_key, payload, round_number):
+    aesgcm = AESGCM(shared_key)
+    nonce = round_number.to_bytes(12, "big")
+    ciphertext = aesgcm.encrypt(nonce, payload, None)
+    ciphertext = struct.pack("!I", len(ciphertext))
+    return ciphertext
+
+
