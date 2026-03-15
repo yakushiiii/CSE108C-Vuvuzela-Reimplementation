@@ -1,11 +1,10 @@
 # Server Class Node
 
 import socket, sleep, threading
-from encryption import server_decrypt, server_encrypt
 from serverC import dead_drop_swap
 from shuffle import shuffle, unshuffle
 from keys import keys
-from encryption import server_layer_encryption, shared_secret
+from encryption import server_layer_encryption, server_layer_decryption, shared_secret
 import pickle, time
 
 clients = set()
@@ -109,7 +108,7 @@ class Node:
             dcipher = []
             for msg in batch_list:
                 pub_key.append(msg[:32])
-                decrypted_cipher = server_decrypt(self.private_key, msg[32:])
+                decrypted_cipher = server_layer_decryption(self.private_key, msg[32:])
                 dcipher.append(decrypted_cipher)
             
             shuffled, node0_perm = shuffle(dcipher)
@@ -166,7 +165,7 @@ class Node:
             dcipher = []
             for msg in batch_list:
                 self.pub_key.append(msg[:32])
-                decrypted_cipher = server_decrypt(self.private_key, msg[32:])
+                decrypted_cipher = server_layer_decryption(self.private_key, msg[32:])
                 dcipher.append(decrypted_cipher)
 
             # Shuffle Batch
