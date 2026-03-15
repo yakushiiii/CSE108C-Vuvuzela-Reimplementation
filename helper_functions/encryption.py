@@ -11,10 +11,13 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import config
-from keys import serverA_public_key, serverB_public_key, serverC_public_key
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives import default_backend
+
+# ---------------------------
+# Client Encryption Functions
+# ---------------------------
 
 def generate_key_pair():
     private_key = x25519.X25519PrivateKey.generate()
@@ -51,6 +54,7 @@ def shared_secret(self_private_key, other_public_key):
     return shared_key
 """
 #creating a shared secret
+#paper only specifies regular diffie hellman which is just the key exchange, however we use HKDF because it gaurauntees the key to be uniformly random enough
 def shared_secret(self_private_key, other_public_key):
     info = b"first-layer-encryption"
     shared_key = self_private_key.exchange(other_public_key)
@@ -69,7 +73,6 @@ def encrypt_message(encryption_key, message, round_number): #add round num later
         raise ValueError("WARNING: The message is too long.")
     message = message.encode()
     padded_message = message + b"\00" * (config.GLOBAL_MESSAGE_LEN - len(message))
-
     #have to create a nonce, in the paper they use the round number
     #for now lets use a fixed value
     nonce = round_number.to_bytes(12, "big")
@@ -107,11 +110,12 @@ def layer_encryption(server_public_key, payload, cl_eph_priv_key, cl_eph_pub_key
         format=serialization.PublicFormat.Raw
     )
 
-    header = struct.pack("!32s12sI", client_epubk_bytes, round_number, len(payload))
+    header = struct.pack("!32sI", client_epubk_bytes, len(ciphertext))
     return header + ciphertext, key
 
 #generate ephemeral client keys for every round
-def onion_encrypt(round_number, ciphertext, dead_drop_id, serverA_public_key=serverA_public_key, serverB_public_key=serverB_public_key, serverC_public_key=serverC_public_key): 
+#let's assume that the client already has all the server public keys in a directory json filesince they are long term keys
+def onion_encrypt(round_number, encryption_key, message, dead_drop_id, serverA_public_key, serverB_public_key, serverC_public_key): 
     cl_eph_priv_keys = []
     cl_eph_pub_keys = []
     for i in range(3):
@@ -121,11 +125,41 @@ def onion_encrypt(round_number, ciphertext, dead_drop_id, serverA_public_key=ser
 
     server_client_sh_keys = [None] * 3
 
+    ciphertext = encrypt_message(encryption_key, message, round_number)
+    payload_header = struct.pack("!16sI", dead_drop_id, len(ciphertext))
 
-    inner = layer_encryption(round_number, serverC_public_key, dead_drop_id + ciphertext)
-    middle = layer_encryption(round_number, serverB_public_key, inner)
-    outer = layer_encryption(round_number, serverA_public_key, middle)
+    inner, inner_key = layer_encryption(serverC_public_key, payload_header + ciphertext, cl_eph_priv_keys[0], cl_eph_pub_keys[0], round_number)
+    middle, middle_key = layer_encryption(serverB_public_key, inner, cl_eph_priv_keys[1], cl_eph_pub_keys[1], round_number)
+    outer, outer_key = layer_encryption(serverA_public_key, middle, cl_eph_priv_keys[2], cl_eph_pub_keys[2], round_number)
  
-    return outer
+    server_client_sh_keys[0] = outer_key
+    server_client_sh_keys[1] = middle_key
+    server_client_sh_keys[2] = inner_key
 
-def onion_decrypt()
+    return outer, server_client_sh_keys
+
+#server sends back in same type of struct just without public key
+def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, round_number):
+    round_number = round_number.to_bytes(12, "big")
+    for i in range(3):
+        cipher_len = struct.unpack("!I", onion_message[:4])[0] 
+        ciphertext = onion_message[4:4+cipher_len]
+        aesgcm_cipher = AESGCM(server_client_sh_keys[i])
+        payload = aesgcm_cipher.decrypt(round_number, ciphertext, None)
+        onion_message = payload #for code readability
+
+    #now decrypting the final inside layer
+    #if struct unpack error then dummy message
+    try: 
+        _, cipher_len = struct.unpack("!16sI", onion_message[:20])
+    except struct.error:
+        return None
+    ciphertext = onion_message[20:20+cipher_len]
+    aesgcm_cipher = AESGCM(partner_shared_secret)
+    payload = aesgcm_cipher.decrypt(round_number, ciphertext, None)
+    return payload
+
+# ---------------------------
+# Server Encryption Functions
+# ---------------------------
+

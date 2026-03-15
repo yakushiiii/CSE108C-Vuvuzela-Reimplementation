@@ -33,7 +33,11 @@ GLOBAL_ENCRYPTED_LEN = 468
 
 server_A = "127.0.0.1"
 port = 9000
-server_A_pubK = "e4420b424085b51bad775e8384cc15c6ebc22c49cf169cd8635f56caa28283"
+
+#just saving these locally because they are long term keys
+serverA_pubK = "be4420b424085b51bad775e8384cc15c6ebc22c49cf169cd8635f56caa28283e"
+serverB_pubK = "cee95351c9c12d143aa18aaf0e665b3f24aa7056d092c7f75131736ac0de6944"
+serverC_pubK = "c3347a3b97843e798bf56dee5fa4485bc7453476ca47789f9b954b5496daaa1e"
 
 #creating client class to establish user and all relevant functionality, initalized with socket as a parameter so that i could immediately start sending messages to the server 
 class Client:
@@ -57,11 +61,7 @@ class Client:
         print("Your username is {self.username}")
         #to start server threading and peristent listening for server signals
         threading.Thread(target=self.listen, args=(sock,)).start()
-        
-        
-    
 
-    
     #registers user by sending the information the server needs to add them to the the directory json
     def register_user(self, public_key, sock):
         #have to serialize the public key to send over bytes
@@ -134,7 +134,7 @@ class Client:
             #add encryption
             else:
                 ciphertext = encryption.encrypt_message(self.shared_secret, self.outgoing_input.get(), self.round)
-                onion_packet = encryption.onion_encrypt(self.round, ciphertext, self.dead_drop_id)
+                onion_packet = encryption.onion_encrypt(self.round, ciphertext, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
                 sock.sendall(onion_packet)
 
     def dummy_message(self):
@@ -212,7 +212,9 @@ async def client_main(rounds):
     while (1): #this while loop is for initiating the conversationg between two clients
         client.get_partner()
         client.shared_secret = encryption.shared_secret(client.private_key, client.partner_pubK)
-        client.dead_drop_id = encryption.get_dead_drop_id(client.shared_secret, client.round_number)
+        true_shared_secret = client.private_key.exchange(client.partner_pubK)
+        # i manually key exchange becaues the shared_secret function produces a HKDF derives key based on the true shared secret, but we need the raw shared secret for the dead drop id
+        client.dead_drop_id = encryption.get_dead_drop_id(true_shared_secret, client.round_number)
         client.quit = False
 
         #change this to ask server1 the directory.json file
