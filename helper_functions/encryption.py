@@ -28,28 +28,6 @@ def generate_key_pair():
 
     return private_key, public_key
 
-# Decrypt Private Key
-def decrypt_private_key(private_key, ciphertext: bytes) -> str:
-    decrypted_ciphertext = private_key.decrypt(ciphertext, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)).decode("utf-8")
-    return decrypted_ciphertext
-
-def server_decrypt(private_key, new_messages_list):
-    decrypted_message_list = []
-    for messages in new_messages_list:
-        decrypted_message_list.append(decrypt_private_key(private_key, messages))
-    return decrypted_message_list
-
-# Encrypt Public Key
-def encrypt_public_key(public_key, text: str) -> bytes:
-    ciphertext = public_key.encrypt(text.encode("utf-8"), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
-    return ciphertext
-
-def server_encrypt(public_key, message_list):
-    encrypted_message_list = []
-    for message in message_list:
-        encrypted_message_list.append(encrypt_public_key(public_key, message))
-    return encrypted_message_list
-
 """
 #creating a shared secret
 def shared_secret(self_private_key, other_public_key):
@@ -138,13 +116,16 @@ def onion_encrypt(round_number, encryption_key, message, dead_drop_id, serverA_p
 
 #server sends back in same type of struct just without public key
 def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, round_number):
+    #because of the way we need to receive sockets first struct should already be unpacked
     round_number = round_number.to_bytes(12, "big")
-    for i in range(3):
-        cipher_len = struct.unpack("!I", onion_message[:4])[0] 
+    aesgcm_cipher = AESGCM(server_client_sh_keys[0])
+    payload = aesgcm_cipher.decrypt(round_number, onion_message, None)
+    #now doing the rest of the lyares
+    for i in range(2):
+        cipher_len = struct.unpack("!I", payload[:4])[0] 
         ciphertext = onion_message[4:4+cipher_len]
-        aesgcm_cipher = AESGCM(server_client_sh_keys[i])
+        aesgcm_cipher = AESGCM(server_client_sh_keys[i+1])
         payload = aesgcm_cipher.decrypt(round_number, ciphertext, None)
-        onion_message = payload #for code readability
 
     #now decrypting the final inside layer
     #if struct unpack error then dummy message
