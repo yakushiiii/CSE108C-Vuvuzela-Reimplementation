@@ -15,7 +15,7 @@ def dead_drop_swap(message_list):
 
     # Separate hash and message
     for i, message in enumerate(message_list):
-        dead_drop_hash = message[0:32]                      # first 32 bytes of message is the hash of the dead drop index
+        dead_drop_hash = message[36:52]                      # first 32 bytes of message is the hash of the dead drop index
     
         bucket_id = get_bucket_index(dead_drop_hash)
 
@@ -30,7 +30,7 @@ def dead_drop_swap(message_list):
             user_buckets[bucket_id] = (i, message)
         
     # If there are buckets which did not swap, fill with dummy messages
-    for y, None in user_buckets.values():
-        output[y] = os.random(GLOBAL_MESSAGE_LEN)
+    for bucket_id, (y, _msg) in user_buckets.items():
+        output[y] = os.urandom(GLOBAL_MESSAGE_LEN)
 
     return output
