@@ -15,6 +15,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives import default_backend
 
+# Note:
+# Instead of raw Diffie Hellman like outlined in the paper, to ensure each key/shared secret is uniformly random enough we chose to use HKDF to derive the raw diffie hellman key
+
 # ---------------------------
 # Client Encryption Functions
 # ---------------------------
@@ -67,6 +70,7 @@ def shared_secret(self_private_key, other_public_key):
     ).derive(shared_key)
     return encryption_key
 
+#for client encryption of actual plaintext message
 def encrypt_message(encryption_key, message, round_number): #add round num later
     #for further security we pad all messages to be the same length
     if len(message) > config.GLOBAL_MESSAGE_LEN:
@@ -79,12 +83,6 @@ def encrypt_message(encryption_key, message, round_number): #add round num later
     aesgcm = AESGCM(encryption_key)
     ciphertext = aesgcm.encrypt(nonce, padded_message, None)
     return ciphertext
-
-def decrypt_message(round_number, encryption_key, ciphertext): #add round num later
-    aesgcm = AESGCM(encryption_key)
-    nonce = round_number.to_bytes(12, "big") #hardcode the nonce for now
-    plaintext = aesgcm.decrypt(nonce, ciphertext, None)
-    return plaintext
 
 def get_dead_drop_id(shared_secret, round_number):
     round_bytes = round_number.to_bytes(8, "big")
@@ -165,8 +163,8 @@ def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, r
 
 #from server A -> server C
 def server_layer_decryption(server_private_key, payload, round_number):
-    client_pubkey_bytes, cipher_len = struct.unpack("!32sI", payload[:48]) 
-    ciphertext = payload[48:48+cipher_len]
+    client_pubkey_bytes, cipher_len = struct.unpack("!32sI", payload[:36]) 
+    ciphertext = payload[36:36+cipher_len]
     cl_public_key = x25519.X25519PublicKey.from_public_bytes(client_pubkey_bytes)   
     info = b'onion-layer-encryption'
     sh_key = server_private_key.exchange(cl_public_key)
@@ -188,7 +186,7 @@ def server_layer_encryption(shared_key, payload, round_number):
     aesgcm = AESGCM(shared_key)
     nonce = round_number.to_bytes(12, "big")
     ciphertext = aesgcm.encrypt(nonce, payload, None)
-    ciphertext = struct.pack("!I", len(ciphertext))
-    return ciphertext
+    ciphertext_header = struct.pack("!I", len(ciphertext))
+    return ciphertext_header + ciphertext
 
 
