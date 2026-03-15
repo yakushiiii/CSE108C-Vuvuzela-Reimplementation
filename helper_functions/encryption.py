@@ -115,7 +115,6 @@ def onion_encrypt(round_number, encryption_key, message, dead_drop_id, serverA_p
 
     return outer, server_client_sh_keys
 
-#server sends back in same type of struct just without public key
 def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, round_number):
     #because of the way we need to receive sockets first struct should already be unpacked
     round_number = round_number.to_bytes(12, "big")
@@ -124,17 +123,17 @@ def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, r
     #now doing the rest of the lyares
     for i in range(2):
         cipher_len = struct.unpack("!I", payload[:4])[0] 
-        ciphertext = onion_message[4:4+cipher_len]
+        ciphertext = payload[4:4+cipher_len]
         aesgcm_cipher = AESGCM(server_client_sh_keys[i+1])
         payload = aesgcm_cipher.decrypt(round_number, ciphertext, None)
 
     #now decrypting the final inside layer
     #if struct unpack error then dummy message
     try: 
-        _, cipher_len = struct.unpack("!16sI", onion_message[:20])
+        _, cipher_len = struct.unpack("!16sI", payload[:20])
     except struct.error:
         return None
-    ciphertext = onion_message[20:20+cipher_len]
+    ciphertext = payload[20:20+cipher_len]
     aesgcm_cipher = AESGCM(partner_shared_secret)
     payload = aesgcm_cipher.decrypt(round_number, ciphertext, None)
     return payload

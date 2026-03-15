@@ -1,9 +1,7 @@
 #client file
 
 import socket 
-import asyncio 
 import os
-import hashlib
 import struct
 import json
 import secrets
@@ -14,8 +12,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from keys import serverA_public_key, serverB_public_key, serverC_public_key
-import client_functions
 from helper_functions import encryption
 import threading
 import queue
