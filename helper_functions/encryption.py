@@ -22,18 +22,19 @@ from cryptography.hazmat.primitives import default_backend
 # Client Encryption Functions
 # ---------------------------
 
-def generate_key_pair():
-    private_key = x25519.X25519PrivateKey.generate()
-    public_key = private_key.public_key()
-
-    return private_key, public_key
-
 """
 #creating a shared secret
 def shared_secret(self_private_key, other_public_key):
     shared_key = self_private_key.exchange(other_public_key)
     return shared_key
 """
+
+def generate_key_pair():
+    private_key = x25519.X25519PrivateKey.generate()
+    public_key = private_key.public_key()
+
+    return private_key, public_key
+
 #creating a shared secret
 #paper only specifies regular diffie hellman which is just the key exchange, however we use HKDF because it gaurauntees the key to be uniformly random enough
 def shared_secret(self_private_key, other_public_key):
