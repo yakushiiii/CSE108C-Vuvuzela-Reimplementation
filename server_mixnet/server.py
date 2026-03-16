@@ -57,37 +57,46 @@ class Node:
             i = 0
             while True:
                 try:
-                    raw = conn.recv(4096)
-                    print("Received data from client")
-                    if not raw:
+                    raw_len = conn.recv(4)
+                    print("Received length data from client")
+                    if not raw_len:
                         print(f"received no data from {addr}")
                         break
 
-                    data = json.loads(raw.decode("utf-8"))
+                    data_len = struct.unpack("!I", raw_len)[0]
 
-                    if data.get("type") == "USERNAME_REQUEST":
+                    data = b""
+                    while len(data) < data_len:
+                        chunk = conn.recv(data_len - len(data))
+                        if not chunk:
+                            break
+                        data += chunk
+                    
+                    payload = json.loads(data.decode("utf-8"))
+
+                    if payload.get("type") == "USERNAME_REQUEST":
                         print(f"Username Request from {addr}")
                         username = "client" + i
                         i += 1
                         user_msg = {
                             "username": username,
                         }
-                        payload = json.dumps(user_msg).encode("utf-8")
-                        send_packet(conn, payload)
+                        msg = json.dumps(user_msg).encode("utf-8")
+                        send_packet(conn, msg)
                         print(f"Initialized USERNAME_REQUEST from {addr}")
 
-                    elif data.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
+                    elif payload.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
                         print(f"Directory Request from {addr}")
                         json_path = os.path.join("data", "directory.json")
                         with open(json_path, "r") as f:
-                            payload = json.load(f)
+                            pay = json.load(f)
 
-                        payload_bytes = json.dumps(payload).encode("utf-8")
+                        payload_bytes = json.dumps(pay).encode("utf-8")
                         send_packet(conn, payload_bytes)
 
                     else:
                         with clients_lock:
-                            client_messages[conn] = data
+                            client_messages[conn] = payload
                             print("added data")
                 except Exception as e:
                     print(f"Client Error inner: {e}")
