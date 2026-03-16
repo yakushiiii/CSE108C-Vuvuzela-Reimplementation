@@ -130,7 +130,10 @@ class Client:
         while 1: 
             with self.sock_lock:
                 data = recv_all(sock)
-            parsed_json = json.loads(data)
+            try:
+                parsed_json = json.loads(data)
+            except:
+                continue
             #parse json data and get round number
             if ((parsed_json["type"] != "START_SEND") and count == 0):
                 continue
