@@ -1,18 +1,19 @@
 # Server Class Node
 
-import socket, sleep, threading
+import socket, threading
 from serverC import dead_drop_swap
 from shuffle import shuffle, unshuffle
 from keys import keys
-from encryption import server_layer_encryption, server_layer_decryption, shared_secret
+from encryption import server_layer_encryption, server_layer_decryption
 import pickle, time
 
 clients = set()
 clients_lock = threading.Lock()
-global round_number 
+round_number_lock = threading.Lock()
 round_number = 1
 client_messages = {}
 
+# Broadcast
 def broadcast(message: bytes):
     dead = []
     with clients_lock:
@@ -26,6 +27,7 @@ def broadcast(message: bytes):
             clients.remove(conn)
             conn.close()
 
+# Server Class
 class Node:
     PORT_START = 6001
 
@@ -36,50 +38,45 @@ class Node:
         self.next_node = next_node
         self.private_key = keys[node_id][0]
         self.host = "127.0.0.1"
-        self.pub_key = []
+        self.sh_key = []
         self.permutations = []
+        self._lock = threading.Lock()
         print("Done initializing Nodes")
 
     # First Server
     def handle_client(self, conn: socket.socket, addr):
         try:
             # First Server 
-            if not self.prev_node:
-            
-                with clients_lock:
-                    client_messages[conn] = None
+            with clients_lock:
+                clients.add(conn)
+                client_messages[conn] = None
 
-                while True:
-                    try:
-                        data = conn.recv(4096)
-                        print("Received data from client")
-                        if not data:
-                            print("received no data from client")
-                            break
-                        with clients_lock:
-                            client_messages[conn] = data
-                            print("added data")
-                    except Exception as e:
-                        print(f"Client Error: {e}")
+            while True:
+                try:
+                    data = conn.recv(4096)
+                    print("Received data from client")
+                    if not data:
+                        print(f"received no data from {addr}")
                         break
-                    finally:
-                        with clients_lock:
-                            client_messages.pop(conn, None)
-                        conn.close()
-                        print(f"Client disconnected: {addr}")
+                    with clients_lock:
+                        client_messages[conn] = data
+                        print("added data")
+                except Exception as e:
+                    print(f"Client Error: {e}")
+                    break
         except Exception as e:
             print(f"Client Error: {e}")
 
     # Batching for First Server
     def batching(self, BATCHING):
+        global round_number
 
         batching_message = {
             "type": "START_SEND",
             "round_number": round_number  
         }
 
-        batching_string = pickle.dumps(batching_message)
-        batching_bytes = batching_string.encode()
+        batching_bytes = pickle.dumps(batching_message)
 
         while True:
             broadcast(batching_bytes)
@@ -97,19 +94,18 @@ class Node:
                 receive_message = {
                     "type": "START_RECEIVE", 
                 }
-                receive_string = pickle.dumps(receive_message)
-                receive_bytes = receive_string.encode()
+                receive_bytes = pickle.dumps(receive_message)
                 broadcast(receive_bytes)
                 
             if not batch_list:
                 continue
             
-            pub_key = []
+            sh_key = []
             dcipher = []
             for msg in batch_list:
-                pub_key.append(msg[:32])
-                decrypted_cipher = server_layer_decryption(self.private_key, msg[32:])
+                decrypted_cipher, key = server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
+                sh_key.append(key)
             
             shuffled, node0_perm = shuffle(dcipher)
 
@@ -118,19 +114,18 @@ class Node:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.next_node.port))
 
-                    payload = pickle.dumps(shuffled).encode()
+                    payload = pickle.dumps(shuffled)
                     s.sendall(payload)
 
                     # Wait for response
                     response_data = s.recv(4096)
-                    returned_batch = pickle.loads(response_data.decode())
+                    returned_batch = pickle.loads(response_data)
 
                     # Re-encrypt batch
                     encrypted_batch = []
                     i = 0
                     for msg in returned_batch:
-                        shared_key = shared_secret(self.private_key, pub_key[i])
-                        encrypted_message = server_layer_encryption(shared_key, msg, round_number)
+                        encrypted_message = server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
                     
@@ -138,16 +133,17 @@ class Node:
                     unshuffled_batch = unshuffle(encrypted_batch, node0_perm)
 
                     # Send batch back to clients
-                    for i in range(len(conn_list)):
+                    for conn, reply in zip(conn_list, unshuffled_batch):
                         try:
-                            conn_list[i].sendall(unshuffled_batch[i].encode())
+                            conn.sendall(reply)
                         except:
                             print("Error sending back to clients from node")
                     print(f"Round {round_number} complete.  Incrementing")
-                    round_number += 1
+                    with round_number_lock:
+                        round_number += 1
 
                     # Clear public keys for current node
-                    self.pub_key = []
+                    self.sh_key = []
                     # Broadcast round completion
                     broadcast(b"Round Complete")
 
@@ -159,14 +155,15 @@ class Node:
             data = conn.recv(4096)
             if not data:
                 return
-            batch_list = pickle.loads(data.decode())
+            batch_list = pickle.loads(data)
 
             # Decrypt batch
             dcipher = []
+            sh_key = []
             for msg in batch_list:
-                self.pub_key.append(msg[:32])
-                decrypted_cipher = server_layer_decryption(self.private_key, msg[32:])
+                decrypted_cipher, key = server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
+                sh_key.append(key)
 
             # Shuffle Batch
             shuffled_batch, self.permutations = shuffle(dcipher)
@@ -176,12 +173,12 @@ class Node:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.next_node.port))
                     print("connected to next node")
-                    s.sendall(pickle.dumps(shuffled_batch).encode())
+                    s.sendall(pickle.dumps(shuffled_batch))
                     print("Data Forwarded")
                     
                     # Get response from next node
                     response_data = s.recv(4096)
-                    returned_batch = pickle.loads(response_data.decode())
+                    returned_batch = pickle.loads(response_data)
 
                     # Unshuffle response
                     unshuffled_batch, self.permutations = unshuffle(returned_batch)
@@ -190,18 +187,17 @@ class Node:
                     encrypted_batch = []
                     i = 0
                     for msg in unshuffled_batch:
-                        shared_key = shared_secret(self.private_key, self.pub_key[i])
-                        encrypted_message = server_layer_encryption(shared_key, msg, round_number)
+                        encrypted_message = server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
 
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.prev_node.port))
                     print("connected to prev node")
-                    s.sendall(pickle.dumps(encrypted_batch).encode())
+                    s.sendall(pickle.dumps(encrypted_batch))
                     print("Data Forwarded")
                     # Clear public keys for current node
-                    self.pub_key = []
+                    self.sh_key = []
             
             # Last Node
             else:
@@ -213,15 +209,14 @@ class Node:
                 encrypted_batch = []
                 i = 0
                 for msg in unshuffled_batch:
-                    shared_key = shared_secret(self.private_key, self.pub_key[i])
-                    encrypted_message = server_layer_encryption(shared_key, msg, round_number)
+                    encrypted_message = server_layer_encryption(self.sh_key, msg, round_number)
                     encrypted_batch.append(encrypted_message)
                     i += 1
 
                 # Send encrypted batch
-                conn.sendall(pickle.dumps(encrypted_batch).encode())
+                conn.sendall(pickle.dumps(encrypted_batch))
                 # Clear public keys for current node
-                self.pub_key = []
+                self.sh_key = []
 
         except Exception as e:
             print(f"Node {self.id} Error: {e}")

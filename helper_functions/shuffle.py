@@ -1,6 +1,4 @@
 import secrets
-from server import permutations
-from config import ROUND_NUM
 
 # Shuffle messages in list and return shuffled message and indices
 def shuffle(messages_list):
@@ -14,7 +12,7 @@ def shuffle(messages_list):
         return shuffled_messages, index
     except:
         print("Error: Shuffle not working")
-        
+
 # Unshuffle messages using stored permutation and return message
 def unshuffle(shuffled_messages, permutations):
     try: 
