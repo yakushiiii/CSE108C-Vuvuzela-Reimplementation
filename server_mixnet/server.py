@@ -4,13 +4,17 @@ import socket, threading
 from dead_drop import dead_drop_swap
 from helper_functions import shuffle, encryption
 from keys import keys
-import pickle, time
+import pickle, time, struct, json, os
 
 clients = set()
 clients_lock = threading.Lock()
 round_number_lock = threading.Lock()
 round_number = 1
 client_messages = {}
+
+# Send packet
+def send_packet(sock: socket.socket, payload: bytes):
+    sock.sendall(struct.pack("!I", len(payload)) + payload)
 
 # Broadcast
 def broadcast(message: bytes):
@@ -50,16 +54,41 @@ class Node:
                 clients.add(conn)
                 client_messages[conn] = None
 
+            i = 0
             while True:
                 try:
-                    data = conn.recv(4096)
+                    raw = conn.recv(4096)
                     print("Received data from client")
-                    if not data:
+                    if not raw:
                         print(f"received no data from {addr}")
                         break
-                    with clients_lock:
-                        client_messages[conn] = data
-                        print("added data")
+
+                    data = json.loads(raw.decode("utf-8"))
+
+                    if data.get("type") == "USERNAME_REQUEST":
+                        print(f"Username Request from {addr}")
+                        username = "client" + i
+                        i += 1
+                        user_msg = {
+                            "username": username,
+                        }
+                        payload = json.dumps(user_msg).encode("utf-8")
+                        send_packet(conn, payload)
+                        print(f"Initialized USERNAME_REQUEST from {addr}")
+
+                    elif data.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
+                        print(f"Directory Request from {addr}")
+                        json_path = os.path.join("data", "directory.json")
+                        with open(json_path, "r") as f:
+                            payload = json.load(f)
+
+                        payload_bytes = json.dumps(payload).encode("utf-8")
+                        send_packet(conn, payload_bytes)
+
+                    else:
+                        with clients_lock:
+                            client_messages[conn] = data
+                            print("added data")
                 except Exception as e:
                     print(f"Client Error: {e}")
                     break
