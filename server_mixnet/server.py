@@ -76,7 +76,7 @@ class Node:
 
                     if payload.get("type") == "USERNAME_REQUEST":
                         print(f"Username Request from {addr}")
-                        username = "client" + i
+                        username = "client" + str(i)
                         i += 1
                         user_msg = {
                             "username": username,
