@@ -182,13 +182,13 @@ class Node:
                     returned_batch = pickle.loads(response_data)
 
                     # Unshuffle batch
-                    unshuffled_batch = shuffle.unshuffle(encrypted_batch, node0_perm)
+                    unshuffled_batch = shuffle.unshuffle(returned_batch, node0_perm)
                     self.permutations = []
 
                     # Re-encrypt batch
                     encrypted_batch = []
                     i = 0
-                    for msg in returned_batch:
+                    for msg in unshuffled_batch:
                         encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
