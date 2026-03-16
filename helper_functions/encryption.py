@@ -13,7 +13,6 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import config
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives import default_backend
 
 # Note:
 # Instead of raw Diffie Hellman like outlined in the paper, to ensure each key/shared secret is uniformly random enough we chose to use HKDF to derive the raw diffie hellman key

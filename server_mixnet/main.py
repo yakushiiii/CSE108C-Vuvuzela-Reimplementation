@@ -6,20 +6,24 @@
 # Each node runs in its own thread.  Node 0 also runs the batching loop.
 # Clients connect to 127.0.0.1:9000 (SERVER_PORT).
 #
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import threading
 import socket
 import struct
 import json
 
-from server import Node
+
+from server_mixnet import server
 from config import BATCHING, NUMBER_NODES, SERVER_PORT
-import os
+
 
 # ---------------------------------------------------------------------------
 # Build node chain:  node0 <-> node1 <-> node2
 # ---------------------------------------------------------------------------
 
-nodes = [Node(i) for i in range(NUMBER_NODES)]
+nodes = [server.Node(i) for i in range(NUMBER_NODES)]
 for i, node in enumerate(nodes):
     node.prev_node = nodes[i - 1] if i > 0              else None
     node.next_node = nodes[i + 1] if i < len(nodes) - 1 else None

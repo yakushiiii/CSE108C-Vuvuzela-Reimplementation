@@ -2,9 +2,8 @@
 
 import socket, threading
 from dead_drop import dead_drop_swap
-from shuffle import shuffle, unshuffle
+from helper_functions import shuffle, encryption
 from keys import keys
-from encryption import server_layer_encryption, server_layer_decryption
 import pickle, time
 
 clients = set()
@@ -103,7 +102,7 @@ class Node:
             sh_key = []
             dcipher = []
             for msg in batch_list:
-                decrypted_cipher, key = server_layer_decryption(self.private_key, msg, round_number)
+                decrypted_cipher, key = encryption.server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
                 sh_key.append(key)
             
@@ -125,12 +124,12 @@ class Node:
                     encrypted_batch = []
                     i = 0
                     for msg in returned_batch:
-                        encrypted_message = server_layer_encryption(self.sh_key[i], msg, round_number)
+                        encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
                     
                     # Unshuffle batch
-                    unshuffled_batch = unshuffle(encrypted_batch, node0_perm)
+                    unshuffled_batch = shuffle.unshuffle(encrypted_batch, node0_perm)
                     self.permutations = []
 
                     # Send batch back to clients
@@ -162,7 +161,7 @@ class Node:
             dcipher = []
             sh_key = []
             for msg in batch_list:
-                decrypted_cipher, key = server_layer_decryption(self.private_key, msg, round_number)
+                decrypted_cipher, key = encryption.server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
                 sh_key.append(key)
 
@@ -182,14 +181,14 @@ class Node:
                     returned_batch = pickle.loads(response_data)
 
                     # Unshuffle response
-                    unshuffled_batch, self.permutations = unshuffle(returned_batch, self.permutations)
+                    unshuffled_batch, self.permutations = shuffle.unshuffle(returned_batch, self.permutations)
                     self.permutations = []
                     
                     # Re-encrypt batch
                     encrypted_batch = []
                     i = 0
                     for msg in unshuffled_batch:
-                        encrypted_message = server_layer_encryption(self.sh_key[i], msg, round_number)
+                        encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
 
@@ -202,14 +201,14 @@ class Node:
             else:
                 # Shuffle and Swap
                 swap = dead_drop_swap(shuffled_batch)
-                unshuffled_batch = unshuffle(swap, self.permutations)
+                unshuffled_batch = shuffle.unshuffle(swap, self.permutations)
                 self.permutations = []
                 
                 # Re-encrypt batch
                 encrypted_batch = []
                 i = 0
                 for msg in unshuffled_batch:
-                    encrypted_message = server_layer_encryption(self.sh_key, msg, round_number)
+                    encrypted_message = encryption.server_layer_encryption(self.sh_key, msg, round_number)
                     encrypted_batch.append(encrypted_message)
                     i += 1
 
