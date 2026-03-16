@@ -107,7 +107,7 @@ class Node:
                 dcipher.append(decrypted_cipher)
                 sh_key.append(key)
             
-            shuffled, node0_perm = shuffle(dcipher)
+            shuffled, node0_perm = shuffle(dcipher, self.permutations)
 
             # Forward decrypted data to next node
             if self.next_node:
@@ -131,6 +131,7 @@ class Node:
                     
                     # Unshuffle batch
                     unshuffled_batch = unshuffle(encrypted_batch, node0_perm)
+                    self.permutations = []
 
                     # Send batch back to clients
                     for conn, reply in zip(conn_list, unshuffled_batch):
@@ -181,7 +182,8 @@ class Node:
                     returned_batch = pickle.loads(response_data)
 
                     # Unshuffle response
-                    unshuffled_batch, self.permutations = unshuffle(returned_batch)
+                    unshuffled_batch, self.permutations = unshuffle(returned_batch, self.permutations)
+                    self.permutations = []
                     
                     # Re-encrypt batch
                     encrypted_batch = []
@@ -191,9 +193,6 @@ class Node:
                         encrypted_batch.append(encrypted_message)
                         i += 1
 
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.connect((self.host, self.prev_node.port))
-                    print("connected to prev node")
                     s.sendall(pickle.dumps(encrypted_batch))
                     print("Data Forwarded")
                     # Clear public keys for current node
@@ -204,6 +203,7 @@ class Node:
                 # Shuffle and Swap
                 swap = dead_drop_swap(shuffled_batch)
                 unshuffled_batch = unshuffle(swap, self.permutations)
+                self.permutations = []
                 
                 # Re-encrypt batch
                 encrypted_batch = []
