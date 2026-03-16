@@ -1,7 +1,7 @@
 import asyncio
 from enum import Enum
 
-SERVER_PORT = 9000
+SERVER_PORT = 9010
 connections = 0
 MAX_ROUND = 100000
 BATCHING = 5

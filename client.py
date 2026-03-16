@@ -16,12 +16,7 @@ from helper_functions import encryption
 import threading
 import queue
 import time
-
-SERVER_PORT = 9000
-connections = 0
-MAX_ROUND = 100000
-BATCHING = 20
-NUM_BUCKETS = 100
+import config
 
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
@@ -223,7 +218,7 @@ def recv_all(sock):
 if __name__ == "__main__":
     #create socket and connect to server
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((server_A, port))
+    sock.connect((server_A, config.SERVER_PORT))
 
     print("Welcome to our anonymouse private metadata messaging service!")
     print("Please ensure you leave this program running in the background in order to maintain privacy. If you terminate this program your username will alse be reassigned.")
@@ -245,37 +240,6 @@ if __name__ == "__main__":
     while True:
         time.sleep(1)
 
-
-
-"""
-async def client(rounds):
-    while True:
-        r = await rounds.wait_next_round()
-        print("Client sending in round", r)
-
-        # compute dead drop using r
-        # build onion
-        # send to server
-"""
-""""
-while True:
-    round = await rounds.startt_send(last)
-    last = round
-"""
-
-
-#if dead drop hash the one the client is expecting dispaly if not don't
-
-#save shared keys
-
-
-"""""
-with open("directory.json", "r") as file:
-            data = json.load(file)
-        data["users"][username] = {"public_key": pk_bytes}
-        with open("directory.json", "w") as file:
-            json.dump(data, file, indent=4)
-"""
 """
 -------------------
 Vuvuzela Encryption
