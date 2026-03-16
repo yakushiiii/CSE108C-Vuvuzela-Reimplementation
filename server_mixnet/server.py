@@ -181,6 +181,10 @@ class Node:
                     response_data = s.recv(4096)
                     returned_batch = pickle.loads(response_data)
 
+                    # Unshuffle batch
+                    unshuffled_batch = shuffle.unshuffle(encrypted_batch, node0_perm)
+                    self.permutations = []
+
                     # Re-encrypt batch
                     encrypted_batch = []
                     i = 0
@@ -188,10 +192,6 @@ class Node:
                         encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
-                    
-                    # Unshuffle batch
-                    unshuffled_batch = shuffle.unshuffle(encrypted_batch, node0_perm)
-                    self.permutations = []
 
                     # Send batch back to clients
                     for conn, reply in zip(conn_list, unshuffled_batch):
