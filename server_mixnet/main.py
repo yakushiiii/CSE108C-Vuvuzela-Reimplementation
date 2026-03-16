@@ -1,12 +1,55 @@
-from serverA import handle_client, batching, broadcast, server_A
-from serverB import serverB_decrypt, serverB_shuffle, serverB_unshuffle
-from serverC import serverC_decrypt, serverC_shuffle, serverC_unshuffle, get_bucket_index, dead_drop_swap
-from config import BATCHING, Rounds, NUM_BUCKETS
-from shuffle import shuffle, unshuffle
-from encryption import server_decrypt, server_encrypt, reencrypt_server
-from keys import serverA_private_key, serverB_private_key, serverC_private_key, serverA_public_key, serverB_public_key, serverC_public_key
-import asyncio
+#!/usr/bin/env python3
+# main.py  –  Start all three mix-net nodes
+#
+# Usage:  python main.py
+#
+# Each node runs in its own thread.  Node 0 also runs the batching loop.
+# Clients connect to 127.0.0.1:9000 (SERVER_PORT).
+#
+import threading
+import socket
+import struct
+import json
 
-async def init_rounds():
-    rounds = Rounds()
-    message_list = await server_A(rounds)
+from server import Node, send_packet, recv_packet, _assign_username, DIRECTORY_FILE
+from config import BATCHING, NUMBER_NODES, SERVER_PORT
+import os
+
+# ---------------------------------------------------------------------------
+# Build node chain:  node0 <-> node1 <-> node2
+# ---------------------------------------------------------------------------
+
+nodes = [Node(i) for i in range(NUMBER_NODES)]
+for i, node in enumerate(nodes):
+    node.prev_node = nodes[i - 1] if i > 0              else None
+    node.next_node = nodes[i + 1] if i < len(nodes) - 1 else None
+
+# ---------------------------------------------------------------------------
+# Start each node's listener in a background thread
+# ---------------------------------------------------------------------------
+
+for node in nodes:
+    threading.Thread(target=node.start, daemon=True).start()
+
+# ---------------------------------------------------------------------------
+# Start node 0's batching loop in a background thread
+# ---------------------------------------------------------------------------
+
+threading.Thread(target=nodes[0].batching, args=(BATCHING,), daemon=True).start()
+
+# ---------------------------------------------------------------------------
+# Front-door listener on SERVER_PORT
+# Clients connect here; we forward to node 0's handle_client
+# ---------------------------------------------------------------------------
+
+print(f"Front door listening on 127.0.0.1:{SERVER_PORT}")
+front = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+front.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+front.bind(("127.0.0.1", SERVER_PORT))
+front.listen()
+
+while True:
+    conn, addr = front.accept()
+    threading.Thread(
+        target=nodes[0].handle_client, args=(conn, addr), daemon=True
+    ).start()
