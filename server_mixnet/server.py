@@ -160,12 +160,12 @@ class Node:
             if not batch_list:
                 continue
             
-            sh_key = []
+            self.sh_key = []
             dcipher = []
             for msg in batch_list:
                 decrypted_cipher, key = encryption.server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
-                sh_key.append(key)
+                self.sh_key.append(key)
             
             shuffled, node0_perm = shuffle.shuffle(dcipher)
 
@@ -185,7 +185,7 @@ class Node:
                     encrypted_batch = []
                     i = 0
                     for msg in returned_batch:
-                        encrypted_message = encryption.server_layer_encryption(sh_key[i], msg, round_number)
+                        encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
                     
@@ -220,11 +220,11 @@ class Node:
 
             # Decrypt batch
             dcipher = []
-            sh_key = []
+            self.sh_key = []
             for msg in batch_list:
                 decrypted_cipher, key = encryption.server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
-                sh_key.append(key)
+                self.sh_key.append(key)
 
             # Shuffle Batch
             shuffled_batch, self.permutations = shuffle.shuffle(dcipher)
@@ -249,7 +249,7 @@ class Node:
                     encrypted_batch = []
                     i = 0
                     for msg in unshuffled_batch:
-                        encrypted_message = encryption.server_layer_encryption(sh_key[i], msg, round_number)
+                        encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
 
@@ -269,7 +269,7 @@ class Node:
                 encrypted_batch = []
                 i = 0
                 for msg in unshuffled_batch:
-                    encrypted_message = encryption.server_layer_encryption(sh_key, msg, round_number)
+                    encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                     encrypted_batch.append(encrypted_message)
                     i += 1
 
