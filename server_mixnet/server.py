@@ -205,8 +205,7 @@ class Node:
 
                     # Clear public keys for current node
                     self.sh_key = []
-                    # Broadcast round completion
-                    broadcast(b"Round Complete")
+
 
     # Nodes > 0
     def handle_server(self, conn, addr):
