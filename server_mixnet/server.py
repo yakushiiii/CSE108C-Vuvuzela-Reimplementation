@@ -90,10 +90,10 @@ class Node:
                             client_messages[conn] = data
                             print("added data")
                 except Exception as e:
-                    print(f"Client Error: {e}")
+                    print(f"Client Error inner: {e}")
                     break
         except Exception as e:
-            print(f"Client Error: {e}")
+            print(f"Client Error outer: {e}")
 
     # Batching for First Server
     def batching(self, BATCHING):
