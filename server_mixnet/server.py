@@ -1,7 +1,7 @@
 # Server Class Node
 
 import socket, threading
-from dead_drop import dead_drop_swap
+from server_mixnet import dead_drop
 from helper_functions import shuffle, encryption
 from keys import keys
 import pickle, time, struct, json, os
@@ -229,7 +229,7 @@ class Node:
             # Last Node
             else:
                 # Shuffle and Swap
-                swap = dead_drop_swap(shuffled_batch)
+                swap = dead_drop.dead_drop_swap(shuffled_batch)
                 unshuffled_batch = shuffle.unshuffle(swap, self.permutations)
                 self.permutations = []
                 
