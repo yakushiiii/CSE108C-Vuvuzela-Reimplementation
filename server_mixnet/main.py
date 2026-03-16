@@ -11,7 +11,7 @@ import socket
 import struct
 import json
 
-from server import Node, send_packet, recv_packet, _assign_username, DIRECTORY_FILE
+from server import Node
 from config import BATCHING, NUMBER_NODES, SERVER_PORT
 import os
 

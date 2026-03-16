@@ -1,7 +1,4 @@
-import threading
-import time
 import asyncio
-import os
 from enum import Enum
 
 SERVER_PORT = 9000
@@ -16,7 +13,7 @@ GLOBAL_SALT = b"vuvuzela protocol v1"
 GLOBAL_KEY_LEN = 32
 GLOBAL_MESSAGE_LEN = 100
 GLOBAL_ENCRYPTED_LEN = 468
-
+'''
 #initializing phases to mark what part of round we are in
 class Phase(Enum):
     SEND = 1
@@ -145,4 +142,4 @@ sock.close()
 
 
 
-"""
+"""'''
