@@ -21,7 +21,7 @@ import config
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
 GLOBAL_KEY_LEN = 32
-GLOBAL_MESSAGE_LEN = 100
+GLOBAL_MESSAGE_LEN = 256
 GLOBAL_ENCRYPTED_LEN = 468
 
 server_A = "192.168.64.7"
@@ -59,7 +59,7 @@ class Client:
         self.register_user(self.public_key, sock)
         print(f"Your username is {self.username}")
         #to start server threading and peristent listening for server signals
-        threading.Thread(target=self.listen, args=(sock,), daemon=True).start()
+        
 
     #registers user by sending the information the server needs to add them to the the directory json
     def register_user(self, public_key, sock):
@@ -72,12 +72,21 @@ class Client:
         #sends json object to server to be added to director so they can start sending messages
         username_req = {"type": "USERNAME_REQUEST", "public_key": pk_bytes.hex()}
         req_bytes = json.dumps(username_req).encode()
+        print("CLIENT: sending USERNAME_REQUEST")
         with self.sock_lock:
             send_packet(sock, req_bytes)
+            print("CLIENT: waiting for username response")
             data = recv_all(sock)
+        print("CLIENT: got username response:", data)
         parsed_user_signal = json.loads(data)
-        if (parsed_user_signal["type"] == "USERNAME"):
-            self.username = parsed_user_signal["username"]
+        while (parsed_user_signal["type"] != "USERNAME"):
+            with self.sock_lock:
+                send_packet(sock, req_bytes)
+                print("CLIENT: waiting for username response")
+                data = recv_all(sock)
+                parsed_user_signal = json.loads(data)
+            continue
+        self.username = parsed_user_signal["username"]
  
         
     #for getting messages, save a queue and the once start_send self.phase = "start_send" then everyone send message
@@ -224,6 +233,7 @@ if __name__ == "__main__":
 
     client = Client(sock)
     client.get_partner(sock)
+    threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
     threading.Thread(target=client.input_loop, daemon=True).start()
 
 

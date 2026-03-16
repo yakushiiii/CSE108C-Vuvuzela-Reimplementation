@@ -79,9 +79,12 @@ class Client:
         #sends json object to server to be added to director so they can start sending messages
         username_req = {"type": "USERNAME_REQUEST", "public_key": pk_bytes.hex()}
         req_bytes = json.dumps(username_req).encode()
+        print("CLIENT: sending USERNAME_REQUEST")
         with self.sock_lock:
             send_packet(sock, req_bytes)
+            print("CLIENT: waiting for username response")
             data = recv_all(sock)
+        print("CLIENT: got username response:", data)
         parsed_user_signal = json.loads(data)
         if (parsed_user_signal["type"] == "USERNAME"):
             self.username = parsed_user_signal["username"]

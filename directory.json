@@ -10,7 +10,12 @@
             "public_key": "c3347a3b97843e798bf56dee5fa4485bc7453476ca47789f9b954b5496daaa1e"
         }
     },
-
     "users": {
+        "client0": {
+            "public_key": "682e0a56f05a38a882afee328dee930b9413ba247466b40e84df12afdada2e2e"
+        },
+        "client1": {
+            "public_key": "ca1aa777b13800b4b8e3df4b4aa6fdd6c7d3452585feef51ee81fcd3f51b3b23"
+        }
     }
 }

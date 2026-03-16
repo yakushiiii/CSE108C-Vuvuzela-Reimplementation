@@ -11,6 +11,10 @@ clients_lock = threading.Lock()
 round_number_lock = threading.Lock()
 round_number = 1
 client_messages = {}
+next_client_id = 0
+next_client_id_lock = threading.Lock()
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+DIRECTORY_PATH = os.path.join(BASE_DIR, "directory.json")
 
 # Send packet
 def send_packet(sock: socket.socket, payload: bytes):
@@ -22,7 +26,7 @@ def broadcast(message: bytes):
     with clients_lock:
         for conn in clients:
             try:
-                conn.sendall(message)
+                send_packet(conn, message)
             except OSError:
                 dead.append(conn)
 
@@ -40,7 +44,7 @@ class Node:
         self.prev_node = prev_node
         self.next_node = next_node
         self.private_key = keys[node_id][0]
-        self.host = "127.0.0.1"
+        self.host = "0.0.0.0"
         self.sh_key = []
         self.permutations = []
         self._lock = threading.Lock()
@@ -48,60 +52,76 @@ class Node:
 
     # First Server
     def handle_client(self, conn: socket.socket, addr):
+        print(f"SERVER: entered handle_client for {addr}")
+        
         try:
             # First Server 
-            with clients_lock:
-                clients.add(conn)
-                client_messages[conn] = None
 
-            i = 0
             while True:
                 try:
-                    raw_len = conn.recv(4)
-                    print("Received length data from client")
-                    if not raw_len:
+                    print("SERVER: waiting for packet")
+                    data = recv_packet(conn)
+                    print("SERVER: recv_packet returned:", data)
+
+                    if not data:
                         print(f"received no data from {addr}")
                         break
 
-                    data_len = struct.unpack("!I", raw_len)[0]
-
-                    data = b""
-                    while len(data) < data_len:
-                        chunk = conn.recv(data_len - len(data))
-                        if not chunk:
-                            break
-                        data += chunk
-                    
-                    payload = json.loads(data.decode("utf-8"))
-
+                    try:
+                        print("SERVER: recv_packet returned:", data)
+                        print("SERVER: decoding packet")
+                        payload = json.loads(data.decode("utf-8"))
+                        print("SERVER: parsed payload:", payload)
+                        print("SERVER: payload type is", payload.get("type"))
+                    except (UnicodeDecodeError, json.JSONDecodeError):
+                        with clients_lock:
+                            client_messages[conn] = data
+                            print("added onion packet")
+                            continue
                     if payload.get("type") == "USERNAME_REQUEST":
                         print(f"Username Request from {addr}")
-                        username = "client" + str(i)
-                        i += 1
+
+                        global next_client_id
+                        with next_client_id_lock:
+                            username = "client" + str(next_client_id)
+                            next_client_id += 1
+                            
+                        with open(DIRECTORY_PATH, "r") as f:
+                            directory = json.load(f)
+
+                        if "users" not in directory:
+                            directory["users"] = {}
+
+                        directory["users"][username] = {
+                            "public_key": payload["public_key"]
+                        }
+
+                        with open(DIRECTORY_PATH, "w") as f:
+                            json.dump(directory, f, indent=4)
+
                         user_msg = {
-                            "type" : "USERNAME",
+                            "type": "USERNAME",
                             "username": username,
                         }
                         msg = json.dumps(user_msg).encode("utf-8")
                         send_packet(conn, msg)
-                        print(f"Initialized USERNAME_REQUEST from {addr}")
+
+                        with clients_lock:
+                            clients.add(conn)
+                            client_messages[conn] = None
 
                     elif payload.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
                         print(f"Directory Request from {addr}")
-                        json_path = os.path.join("data", "directory.json")
-                        with open(json_path, "r") as f:
+                        with open(DIRECTORY_PATH, "r") as f:
                             pay = json.load(f)
 
                         payload_bytes = json.dumps(pay).encode("utf-8")
                         send_packet(conn, payload_bytes)
 
                     else:
-                        with clients_lock:
-                            client_messages[conn] = payload
-                            print("added data")
+                        print("SERVER: ignoring unknown JSON packet")
                 except Exception as e:
-                    print(f"Client Error inner: {e}")
-                    break
+                    print(f"SERVER: JSON/control handling error: {type(e).__name__}: {e}")
         except Exception as e:
             print(f"Client Error outer: {e}")
 
@@ -114,7 +134,7 @@ class Node:
             "round_number": round_number  
         }
 
-        batching_bytes = pickle.dumps(batching_message)
+        batching_bytes = json.dumps(batching_message).encode("utf-8")
 
         while True:
             broadcast(batching_bytes)
@@ -124,16 +144,17 @@ class Node:
 
             with clients_lock:
                 for conn, msg in client_messages.items():
+                    if msg is None:
+                        continue
                     conn_list.append(conn)
                     batch_list.append(msg)
                     client_messages[conn] = None
 
-                # Broadcast to clients to begin expecting messages
-                receive_message = {
-                    "type": "START_RECEIVE", 
-                }
-                receive_bytes = pickle.dumps(receive_message)
-                broadcast(receive_bytes)
+            receive_message = {
+                "type": "START_RECEIVE",
+            }
+            receive_bytes = json.dumps(receive_message).encode("utf-8")
+            broadcast(receive_bytes)
                 
             if not batch_list:
                 continue
@@ -145,7 +166,7 @@ class Node:
                 dcipher.append(decrypted_cipher)
                 sh_key.append(key)
             
-            shuffled, node0_perm = shuffle(dcipher, self.permutations)
+            shuffled, node0_perm = shuffle.shuffle(dcipher, self.permutations)
 
             # Forward decrypted data to next node
             if self.next_node:
@@ -163,7 +184,7 @@ class Node:
                     encrypted_batch = []
                     i = 0
                     for msg in returned_batch:
-                        encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
+                        encrypted_message = encryption.server_layer_encryption(sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
                     
@@ -174,7 +195,7 @@ class Node:
                     # Send batch back to clients
                     for conn, reply in zip(conn_list, unshuffled_batch):
                         try:
-                            conn.sendall(reply)
+                            send_packet(conn, reply)
                         except:
                             print("Error sending back to clients from node")
                     print(f"Round {round_number} complete.  Incrementing")
@@ -205,7 +226,7 @@ class Node:
                 sh_key.append(key)
 
             # Shuffle Batch
-            shuffled_batch, self.permutations = shuffle(dcipher)
+            shuffled_batch, self.permutations = shuffle.shuffle(dcipher)
 
             # If not last node, send
             if self.next_node:
@@ -227,7 +248,7 @@ class Node:
                     encrypted_batch = []
                     i = 0
                     for msg in unshuffled_batch:
-                        encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
+                        encrypted_message = encryption.server_layer_encryption(sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
 
@@ -247,7 +268,7 @@ class Node:
                 encrypted_batch = []
                 i = 0
                 for msg in unshuffled_batch:
-                    encrypted_message = encryption.server_layer_encryption(self.sh_key, msg, round_number)
+                    encrypted_message = encryption.server_layer_encryption(sh_key, msg, round_number)
                     encrypted_batch.append(encrypted_message)
                     i += 1
 
@@ -263,16 +284,34 @@ class Node:
 
     def start(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("127.0.0.1", self.port))
+            s.bind(("0.0.0.0", self.port))
             s.listen()
             print(f"Node {self.id} listening on port {self.port}")
 
             while True:
                 conn, addr = s.accept()
+                print(f"SERVER: accepted connection from {addr}")
                 if self.id == 0:
+                    print(f"SERVER: starting handler thread for {addr}")
                     t = threading.Thread(target=self.handle_client, args=(conn, addr), daemon=True)
                 else:
                     t = threading.Thread(target=self.handle_server, args=(conn, addr), daemon=True)
                 t.start()
 
-                
+
+def recv_msg(sock: socket.socket, n: int):
+    data = b""
+    while len(data) < n:
+        chunk = sock.recv(n - len(data))
+        if not chunk:
+            return None
+        data += chunk
+    return data
+
+def recv_packet(sock: socket.socket):
+    raw_len = recv_msg(sock, 4)
+    if not raw_len:
+        return None
+    data_len = struct.unpack("!I", raw_len)[0]
+    return recv_msg(sock, data_len)
+            

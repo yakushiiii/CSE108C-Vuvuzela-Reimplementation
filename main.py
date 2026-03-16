@@ -46,7 +46,7 @@ threading.Thread(target=nodes[0].batching, args=(BATCHING,), daemon=True).start(
 # Clients connect here; we forward to node 0's handle_client
 # ---------------------------------------------------------------------------
 
-print(f"Front door listening on all interfaces:{SERVER_PORT}")
+print(f"Front door listening on all 0.0.0.0:{SERVER_PORT}")
 front = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 front.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 front.bind(("0.0.0.0", SERVER_PORT)) #so listens on all interfaces
@@ -54,6 +54,7 @@ front.listen()
 
 while True:
     conn, addr = front.accept()
+    print(f"SERVER: accepted connection from {addr}")
     threading.Thread(
         target=nodes[0].handle_client, args=(conn, addr), daemon=True
     ).start()
