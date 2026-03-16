@@ -194,7 +194,7 @@ class Node:
                         i += 1
 
                     # Send batch back to clients
-                    for conn, reply in zip(conn_list, unshuffled_batch):
+                    for conn, reply in zip(conn_list, encrypted_batch):
                         try:
                             send_packet(conn, reply)
                         except:
