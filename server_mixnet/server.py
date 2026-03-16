@@ -1,7 +1,7 @@
 # Server Class Node
 
 import socket, threading
-from serverC import dead_drop_swap
+from dead_drop import dead_drop_swap
 from shuffle import shuffle, unshuffle
 from keys import keys
 from encryption import server_layer_encryption, server_layer_decryption
