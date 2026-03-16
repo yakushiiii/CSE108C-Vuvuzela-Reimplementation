@@ -106,7 +106,7 @@ class Node:
                         msg = json.dumps(user_msg).encode("utf-8")
                         send_packet(conn, msg)
 
-                    if payload.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
+                    elif payload.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
                         print(f"Directory Request from {addr}")
                         with open(DIRECTORY_PATH, "r") as f:
                             pay = json.load(f)
@@ -167,7 +167,7 @@ class Node:
                 dcipher.append(decrypted_cipher)
                 sh_key.append(key)
             
-            shuffled, node0_perm = shuffle.shuffle(dcipher, self.permutations)
+            shuffled, node0_perm = shuffle.shuffle(dcipher)
 
             # Forward decrypted data to next node
             if self.next_node:
