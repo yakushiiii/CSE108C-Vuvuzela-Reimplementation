@@ -24,8 +24,7 @@ GLOBAL_KEY_LEN = 32
 GLOBAL_MESSAGE_LEN = 100
 GLOBAL_ENCRYPTED_LEN = 468
 
-server_A = "127.0.0.1"
-port = 9000
+server_A = "192.168.64.7"
 
 #just saving these locally because they are long term keys
 serverA_pubK = x25519.X25519PublicKey.from_public_bytes(bytes.fromhex(
@@ -61,7 +60,6 @@ class Client:
         print(f"Your username is {self.username}")
         #to start server threading and peristent listening for server signals
         threading.Thread(target=self.listen, args=(sock,), daemon=True).start()
-        threading.Thread(target=self.input_loop, daemon=True).start()
 
     #registers user by sending the information the server needs to add them to the the directory json
     def register_user(self, public_key, sock):
@@ -225,18 +223,10 @@ if __name__ == "__main__":
     print("Also note there is about a 10-20 second latency for message sending/recieving.")
 
     client = Client(sock)
-
-    #shared1 = encryption.shared_secret(client.private_key, client.partner_pubK)
-    #shared2 = encryption.shared_secret(client.private_key, client.public_key)
-    #assert shared1 == shared2
-
-    #df_client_2 = encryption.diffie_hellman(client_2.private_key, client_1.public_key)
-    #assert df_client_1 == df_client_2
-
-    #last = server_A.rounds.round_num
-
-
     client.get_partner(sock)
+    threading.Thread(target=client.input_loop, daemon=True).start()
+
+
     while True:
         time.sleep(1)
 

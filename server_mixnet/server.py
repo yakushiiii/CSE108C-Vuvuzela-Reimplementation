@@ -79,6 +79,7 @@ class Node:
                         username = "client" + str(i)
                         i += 1
                         user_msg = {
+                            "type" : "USERNAME",
                             "username": username,
                         }
                         msg = json.dumps(user_msg).encode("utf-8")
