@@ -103,7 +103,15 @@ class Client:
             req_bytes = json.dumps(partner_pubK_req).encode()
             send_packet(sock, req_bytes)
             data = recv_all(sock)
-        directory = json.loads(data)
+        
+            print("CLIENT raw directory response:", data)
+            directory = json.loads(data)
+            print("CLIENT: parsed directory object:", directory)
+            print("CLIENT: keys in directory:", directory.keys())
+            if "users" not in directory:
+                print("Directory response missing 'users'")
+                return None
+            
         while self.partner not in directory["users"]:
             print("User does not exist. Please try again.")
             self.partner = input("Enter the username of client you want to communicate with: ")

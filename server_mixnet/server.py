@@ -106,11 +106,7 @@ class Node:
                         msg = json.dumps(user_msg).encode("utf-8")
                         send_packet(conn, msg)
 
-                        with clients_lock:
-                            clients.add(conn)
-                            client_messages[conn] = None
-
-                    elif payload.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
+                    if payload.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
                         print(f"Directory Request from {addr}")
                         with open(DIRECTORY_PATH, "r") as f:
                             pay = json.load(f)
@@ -118,6 +114,10 @@ class Node:
                         payload_bytes = json.dumps(pay).encode("utf-8")
                         send_packet(conn, payload_bytes)
                         print(f"Sent Directory to {addr}")
+
+                        with clients_lock:
+                            clients.add(conn)
+                            client_messages[conn] = None
 
                     else:
                         print("SERVER: ignoring unknown JSON packet")
