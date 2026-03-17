@@ -20,7 +20,3 @@ Clients set up a shared key when they want to communicate every round. This id i
 
 Seteup padding on every message ->
 make every message the same length, so should set up padding to ensure this.
-
-
-Next Meeting:
-- Can't communicate with client second time after \quit
