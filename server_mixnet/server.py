@@ -193,7 +193,7 @@ class Node:
 
                     payload = pickle.dumps(shuffled)
                     s.sendall(payload)
-                    print(f"Sent to Node: {self.next.node}")
+                    print("Sent to Next Node")
 
                     # Wait for response
                     response_data = s.recv(4096)
