@@ -16,9 +16,6 @@ next_client_id_lock = threading.Lock()
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DIRECTORY_PATH = os.path.join(BASE_DIR, "directory.json")
 
-# Send packet
-def send_packet(sock: socket.socket, payload: bytes):
-    sock.sendall(struct.pack("!I", len(payload)) + payload)
 
 # Broadcast
 def broadcast(message: bytes):
@@ -197,7 +194,7 @@ class Node:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.next_node.port))
 
-                    send_packet(shuffled)
+                    send_packet(s, shuffled)
                     print("Sent to Next Node")
 
                     # Wait for response
@@ -266,7 +263,7 @@ class Node:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.next_node.port))
                     print("connected to next node")
-                    send_packet(shuffled_batch)
+                    send_packet(s, shuffled_batch)
                     print("Data Forwarded")
                     
                     # Get response from next node
@@ -294,7 +291,7 @@ class Node:
                     print("\nRe-encrypted Batch: ")
                     print(encrypted_batch)
 
-                    send_packet(encrypted_batch)
+                    send_packet(s, encrypted_batch)
 
                     print("Data Forwarded")
                     # Clear public keys for current node
@@ -324,7 +321,7 @@ class Node:
                 print(encrypted_batch)
 
                 # Send encrypted batch
-                send_packet(encrypted_batch)
+                send_packet(s, encrypted_batch)
                 print("Last Node sent back encrypted batch")
                 # Clear public keys for current node
                 self.sh_key = []
