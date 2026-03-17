@@ -232,8 +232,7 @@ class Node:
                         except:
                             print("Error sending back to clients from node")
                     print(f"Round {round_number} complete.  Incrementing")
-                    with round_number_lock:
-                        round_number += 1
+                    round_number += 1
 
                     # Clear public keys for current node
                     self.sh_key = []
