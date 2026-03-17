@@ -185,15 +185,13 @@ class Client:
                 round_shared_secret = state["shared_secret"]
                 round_partner = state["partner"]
                 if(round_partner != None and round_shared_secret is not None):
-                    try:
-                        #inner_len = struct.unpack("!I", ciphertext[:4])[0]
-                        #ciphertext = ciphertext[4:4 + inner_len]
-                        plaintext_message = encryption.onion_decrypt(server_keys, ciphertext, round_shared_secret, self.round_number)
-                        plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
-                        if plaintext_message != None and plaintext_message.startswith("> "):
-                            print(f"{round_partner} > {plaintext_message}")
-                    except Exception as e:
-                        print("CLIENT decrypt failed:", type(e).__name__, e)
+                    #inner_len = struct.unpack("!I", ciphertext[:4])[0]
+                    #ciphertext = ciphertext[4:4 + inner_len]
+                    plaintext_message = encryption.onion_decrypt(server_keys, ciphertext, round_shared_secret, self.round_number)
+                    plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
+                    if plaintext_message != None and plaintext_message.startswith("> "):
+                        print(f"\n{round_partner} {plaintext_message}")
+                        print("> ", end="", flush=True)                        
                 self.round_state.pop(self.round_number, None)
                     
     #need just send dummy messages if there is no partner
