@@ -180,8 +180,8 @@ class Client:
                 if(self.partner != None and self.shared_secret is not None):
                     print("ciphertext:", ciphertext)
                     try:
-                        inner_len = struct.unpack("!I", ciphertext[:4])[0]
-                        ciphertext = ciphertext[4:4 + inner_len]
+                        #inner_len = struct.unpack("!I", ciphertext[:4])[0]
+                        #ciphertext = ciphertext[4:4 + inner_len]
                         plaintext_message = encryption.onion_decrypt(self.server_client_sh_keys, ciphertext, self.shared_secret, self.round_number)
                         if plaintext_message is not None:
                             print(f"{self.partner} > {plaintext_message.rstrip(b'\x00').decode(errors='ignore')}")
@@ -201,13 +201,11 @@ class Client:
             self.dead_drop_id = encryption.get_dead_drop_id(raw_shared, self.round_number)
             if self.outgoing_input.empty():
                 onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, self.shared_secret, self.dummy_message(), self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
-                send_packet(sock, onion_packet)
             else: 
                 message = self.outgoing_input.get()
                 if message == "\\quit":
                     self.quit = True
                     onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, self.shared_secret, self.dummy_message(), self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
-                    send_packet(sock, onion_packet)
                     self.partner = None
                     self.partner_pubK = None
                     self.shared_secret = None
@@ -215,20 +213,18 @@ class Client:
                 #add encryption
                 else:
                     onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, self.shared_secret, message, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
-                    send_packet(sock, onion_packet)
         else:
             if self.outgoing_input.empty():
                 fake_dead_drop = os.urandom(16)
                 fake_shared_secret = os.urandom(32)
                 onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, fake_shared_secret, self.dummy_message(), fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK)
-                send_packet(sock, onion_packet)
             else:
                 message = self.outgoing_input.get()
                 fake_dead_drop = os.urandom(16)
                 fake_shared_secret = os.urandom(32)
                 onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, fake_shared_secret, self.dummy_message(), fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK)
-                send_packet(sock, onion_packet)
-
+        with self.sock_lock:
+            send_packet(sock, onion_packet)
 
     def dummy_message(self):
         #dummy message is just going to be a bunch of random bytes. If the cleint can't decrypt the message using the shared key then that is how we know it is a dummy message to nothing will be displayed

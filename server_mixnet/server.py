@@ -128,7 +128,7 @@ class Node:
 
         while True:
 
-            time.sleep(5)
+            time.sleep(10)
 
             batching_message = {
                 "type": "START_SEND",
