@@ -6,7 +6,7 @@ connections = 0
 MAX_ROUND = 100000
 BATCHING = 5
 NUM_BUCKETS = 100
-NUMBER_NODES = 2
+NUMBER_NODES = 3
 
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
