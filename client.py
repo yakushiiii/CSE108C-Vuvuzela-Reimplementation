@@ -95,17 +95,45 @@ class Client:
     #if queue receives signal and is empty send a dummy message
 
     #get the username of the person the client is communicating with
-    def get_partner(self, sock):
+    def get_partner(self):
         self.partner_lookup_in_progress = True
-        self.partner = input("Enter the username of client you want to communicate with: ")
-        while self.partner == "" or self.partner == "\n":
-            print("Not a valid user.")
+        try:
             self.partner = input("Enter the username of client you want to communicate with: ")
+            while self.partner == "" or self.partner == "\n":
+                print("Not a valid user.")
+                self.partner = input("Enter the username of client you want to communicate with: ")
 
+            with open("directory.json", "r") as f:
+                parsed_json = json.load(f)
+
+            if "users" not in parsed_json:
+                print("directory.json is missing 'users'")
+                self.partner = None
+                return None
+
+            while self.partner not in parsed_json["users"]:
+                print("User does not exist. Please try again.")
+                self.partner = input("Enter the username of client you want to communicate with: ")
+                while self.partner == "" or self.partner == "\n":
+                    print("Not a valid user.")
+                    self.partner = input("Enter the username of client you want to communicate with: ")
+
+            public_key_hex = parsed_json["users"][self.partner]["public_key"]
+            public_key_bytes = bytes.fromhex(public_key_hex)
+            self.partner_pubK = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
+            self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
+            self.partner_lookup_in_progress = False
+            print(f"Now communicating with {self.partner}")
+            return self.partner
+
+        finally:
+            self.partner_lookup_in_progress = False
+        """"
         with self.sock_lock:
             partner_pubK_req = {"type": "PARTNER_PUBLIC_KEY_REQUEST"}
             req_bytes = json.dumps(partner_pubK_req).encode()
             send_packet(sock, req_bytes)
+        """
 
     def listen(self, sock):
         count = 0
@@ -116,6 +144,7 @@ class Client:
                 parsed_json = json.loads(data)
             except:
                 continue
+            """"
             if isinstance(parsed_json, dict) and "users" in parsed_json:
                 if self.partner not in parsed_json["users"]:
                     print("User does not exist. Please try again.")
@@ -130,7 +159,7 @@ class Client:
                 self.partner_lookup_in_progress = False
                 print(f"Now communicating with {self.partner}")
                 continue
-
+            """
             #parse json data and get round number
             msg_type = parsed_json.get("type")
             if msg_type is None:
