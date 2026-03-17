@@ -241,9 +241,9 @@ if __name__ == "__main__":
     print("Welcome to our anonymouse private metadata messaging service!")
     print("Please ensure you leave this program running in the background in order to maintain privacy. If you terminate this program your username will alse be reassigned.")
     print("Also note there is about a 10-20 second latency for message sending/recieving.")
+    print("Type: '\\new partner' to start messaging someone")
 
     client = Client(sock)
-    client.get_partner(sock)
     threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
     threading.Thread(target=client.input_loop, daemon=True).start()
 
