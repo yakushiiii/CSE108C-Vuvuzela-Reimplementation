@@ -23,7 +23,7 @@ def broadcast(message: bytes):
     with clients_lock:
         for conn in clients:
             try:
-                send_packet(conn, message)
+                send_client_packet(conn, message)
             except OSError:
                 dead.append(conn)
 
@@ -101,7 +101,7 @@ class Node:
                             "username": username,
                         }
                         msg = json.dumps(user_msg).encode("utf-8")
-                        send_packet(conn, msg)
+                        send_client_packet(conn, msg)
                         with clients_lock:
                             clients.add(conn)
                             client_messages[conn] = None
@@ -112,7 +112,7 @@ class Node:
                             pay = json.load(f)
 
                         payload_bytes = json.dumps(pay).encode("utf-8")
-                        send_packet(conn, payload_bytes)
+                        send_client_packet(conn, payload_bytes)
                         print(f"Sent Directory to {addr}")
 
                     else:
@@ -194,11 +194,11 @@ class Node:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.next_node.port))
 
-                    send_packet(s, shuffled)
+                    send_server_packet(s, shuffled)
                     print("Sent to Next Node")
 
                     # Wait for response
-                    returned_batch = recv_packet()
+                    returned_batch = recv_server_packet(s)
                     print(f"\nNext Node Received Data: ")
                     print(returned_batch)
 
@@ -221,7 +221,7 @@ class Node:
                     # Send batch back to clients
                     for conn, reply in zip(conn_list, encrypted_batch):
                         try:
-                            send_packet(conn, reply)
+                            send_client_packet(conn, reply)
                             print(f"Sent back to Client {conn}")
                         except:
                             print("Error sending back to clients from node")
@@ -237,7 +237,7 @@ class Node:
 
         # Receive batch from other server
         try:
-            batch_list = recv_packet()
+            batch_list = recv_server_packet(conn)
 
             print("\nData Received from other server")
             print(batch_list)
@@ -263,11 +263,11 @@ class Node:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.next_node.port))
                     print("connected to next node")
-                    send_packet(s, shuffled_batch)
+                    send_server_packet(s, shuffled_batch)
                     print("Data Forwarded")
                     
                     # Get response from next node
-                    returned_batch = recv_packet()
+                    returned_batch = recv_server_packet()
 
                     print("\nResponse from Node")
                     print(returned_batch)
@@ -291,7 +291,7 @@ class Node:
                     print("\nRe-encrypted Batch: ")
                     print(encrypted_batch)
 
-                    send_packet(s, encrypted_batch)
+                    send_server_packet(conn, encrypted_batch)
 
                     print("Data Forwarded")
                     # Clear public keys for current node
@@ -321,7 +321,7 @@ class Node:
                 print(encrypted_batch)
 
                 # Send encrypted batch
-                send_packet(s, encrypted_batch)
+                send_server_packet(conn, encrypted_batch)
                 print("Last Node sent back encrypted batch")
                 # Clear public keys for current node
                 self.sh_key = []
@@ -348,7 +348,7 @@ class Node:
                 t.start()
 
 
-def recv_msg(sock: socket.socket, n: int):
+def recv_msg(sock: socket.socket, n: int) -> bytes:
     data = b""
     while len(data) < n:
         chunk = sock.recv(n - len(data))
@@ -357,13 +357,25 @@ def recv_msg(sock: socket.socket, n: int):
         data += chunk
     return data
 
-def recv_packet(sock: socket.socket):
+# Client comm
+def recv_packet(sock: socket.socket) -> bytes:
     raw_len = recv_msg(sock, 4)
     if not raw_len:
         return None
     data_len = struct.unpack("!I", raw_len)[0]
     return recv_msg(sock, data_len)
             
-def send_packet(sock, obj):
+def send_client_packet(sock: socket.socket, payload: bytes):
+    sock.sendall(struct.pack("!I", len(payload)) + payload)
+
+def send_server_packet(sock: socket.socket, obj):
     payload = pickle.dumps(obj)
     sock.sendall(struct.pack("!I", len(payload)) + payload)
+
+def recv_server_packet(sock: socket.socket):
+    raw_len = recv_msg(sock, 4)
+    if not raw_len:
+        return None
+    data_len = struct.unpack("!I", raw_len)[0]
+    raw = recv_msg(sock, data_len)
+    return pickle.loads(raw)
