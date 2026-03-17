@@ -136,6 +136,7 @@ class Node:
         }
 
         batching_bytes = json.dumps(batching_message).encode("utf-8")
+        print("Batching Start Send")
 
         while True:
             broadcast(batching_bytes)
@@ -150,12 +151,18 @@ class Node:
                     conn_list.append(conn)
                     batch_list.append(msg)
                     client_messages[conn] = None
+            
+                print("Batch List: ")
+                print(batch_list)
+                print("\nConn List: ")
+                print(conn_list)
 
             receive_message = {
                 "type": "START_RECEIVE",
             }
             receive_bytes = json.dumps(receive_message).encode("utf-8")
             broadcast(receive_bytes)
+            print("Start Receive")
                 
             if not batch_list:
                 continue
@@ -167,7 +174,17 @@ class Node:
                 dcipher.append(decrypted_cipher)
                 self.sh_key.append(key)
             
-            shuffled, node0_perm = shuffle.shuffle(dcipher)
+            print("\nSh_keys: ")
+            print(self.sh_key)
+            print("\n Decrypted ciphertext")
+            print(dcipher)
+            
+            shuffled, self.permutations = shuffle.shuffle(dcipher)
+
+            print("\n Permutations: ")
+            print(self.permutations)
+            print("\n Shuffled ciphertext")
+            print(shuffled)
 
             # Forward decrypted data to next node
             if self.next_node:
@@ -176,14 +193,19 @@ class Node:
 
                     payload = pickle.dumps(shuffled)
                     s.sendall(payload)
+                    print(f"Sent to Node: {self.next.node}")
 
                     # Wait for response
                     response_data = s.recv(4096)
                     returned_batch = pickle.loads(response_data)
+                    print(f"\nNext Node Received Data: ")
+                    print(returned_batch)
 
                     # Unshuffle batch
-                    unshuffled_batch = shuffle.unshuffle(returned_batch, node0_perm)
+                    unshuffled_batch = shuffle.unshuffle(returned_batch, self.permutations)
                     self.permutations = []
+                    print("\nUnshuffled Batch: ")
+                    print(unshuffled_batch)
 
                     # Re-encrypt batch
                     encrypted_batch = []
@@ -192,11 +214,14 @@ class Node:
                         encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
+                    print("\nRe-encrypted Batch: ")
+                    print(encrypted_batch)
 
                     # Send batch back to clients
                     for conn, reply in zip(conn_list, encrypted_batch):
                         try:
                             send_packet(conn, reply)
+                            print(f"Sent back to Client {conn}")
                         except:
                             print("Error sending back to clients from node")
                     print(f"Round {round_number} complete.  Incrementing")
@@ -217,6 +242,9 @@ class Node:
                 return
             batch_list = pickle.loads(data)
 
+            print("\nData Received from other server")
+            print(batch_list)
+
             # Decrypt batch
             dcipher = []
             self.sh_key = []
@@ -224,6 +252,11 @@ class Node:
                 decrypted_cipher, key = encryption.server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
                 self.sh_key.append(key)
+            
+            print("\nData decrypted: ")
+            print(dcipher)
+            print("\nSh Keys: ")
+            print(self.sh_key)
 
             # Shuffle Batch
             shuffled_batch, self.permutations = shuffle.shuffle(dcipher)
@@ -240,9 +273,17 @@ class Node:
                     response_data = s.recv(4096)
                     returned_batch = pickle.loads(response_data)
 
+                    print("\nResponse from Node")
+                    print(returned_batch)
+
+                    print("\nNode Permutation: ")
+                    print(self.permutations)
+
                     # Unshuffle response
                     unshuffled_batch, self.permutations = shuffle.unshuffle(returned_batch, self.permutations)
                     self.permutations = []
+                    print("\nUnshuffled Batch: ")
+                    print(unshuffled_batch)
                     
                     # Re-encrypt batch
                     encrypted_batch = []
@@ -251,6 +292,8 @@ class Node:
                         encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                         encrypted_batch.append(encrypted_message)
                         i += 1
+                    print("\nRe-encrypted Batch: ")
+                    print(encrypted_batch)
 
                     s.sendall(pickle.dumps(encrypted_batch))
                     print("Data Forwarded")
@@ -261,8 +304,14 @@ class Node:
             else:
                 # Shuffle and Swap
                 swap = dead_drop.dead_drop_swap(shuffled_batch)
+                print("\nSwapped messages: ")
+                print(swap)
+                print("\nPermutation: ")
+                print(self.permutations)
                 unshuffled_batch = shuffle.unshuffle(swap, self.permutations)
                 self.permutations = []
+                print("\nUnshuffled Batch: ")
+                print(unshuffled_batch)
                 
                 # Re-encrypt batch
                 encrypted_batch = []
@@ -271,9 +320,12 @@ class Node:
                     encrypted_message = encryption.server_layer_encryption(self.sh_key[i], msg, round_number)
                     encrypted_batch.append(encrypted_message)
                     i += 1
+                print("\nRe-encrypted Batch: ")
+                print(encrypted_batch)
 
                 # Send encrypted batch
                 conn.sendall(pickle.dumps(encrypted_batch))
+                print("Last Node sent back encrypted batch")
                 # Clear public keys for current node
                 self.sh_key = []
 
