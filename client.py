@@ -180,6 +180,8 @@ class Client:
                 if(self.partner != None and self.shared_secret is not None):
                     print("ciphertext:", ciphertext)
                     try:
+                        inner_len = struct.unpack("!I", ciphertext[:4])[0]
+                        ciphertext = ciphertext[4:4 + inner_len]
                         plaintext_message = encryption.onion_decrypt(self.server_client_sh_keys, ciphertext, self.shared_secret, self.round_number)
                         if plaintext_message is not None:
                             print(f"{self.partner} > {plaintext_message.rstrip(b'\x00').decode(errors='ignore')}")
