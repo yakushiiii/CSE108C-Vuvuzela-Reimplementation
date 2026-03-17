@@ -124,6 +124,7 @@ class Client:
             self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
             self.partner_lookup_in_progress = False
             print(f"Now communicating with {self.partner}")
+            print(f"Caution: please allow at least a minute to receive all partner messages before you quit, if not they will be lost.")
             return self.partner
 
         finally:
@@ -183,16 +184,14 @@ class Client:
                 server_keys = state["server_keys"]
                 round_shared_secret = state["shared_secret"]
                 round_partner = state["partner"]
-                sent_plaintext = state["plaintext"]
                 if(round_partner != None and round_shared_secret is not None):
                     try:
                         #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                         #ciphertext = ciphertext[4:4 + inner_len]
                         plaintext_message = encryption.onion_decrypt(server_keys, ciphertext, round_shared_secret, self.round_number)
-                        if plaintext_message != None:
-                            received_text = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
-                            if sent_plaintext != received_text:
-                                print(f"{round_partner} > {received_text}")
+                        plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
+                        if plaintext_message != None and plaintext_message.startswith("> "):
+                            print(f"{round_partner} > {plaintext_message}")
                     except Exception as e:
                         print("CLIENT decrypt failed:", type(e).__name__, e)
                 self.round_state.pop(self.round_number, None)
@@ -208,27 +207,24 @@ class Client:
                 onion_packet, keys = encryption.onion_encrypt(self.round_number, self.shared_secret, dummy_text, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
                 round_partner = self.partner
                 round_shared_secret = self.shared_secret
-                round_plaintext = dummy_text
             else: 
                 message = self.outgoing_input.get()
-                round_plaintext = message
                 if message == "\\quit":
                     self.quit = True
                     dummy_text = self.dummy_message()
                     onion_packet, keys = encryption.onion_encrypt(self.round_number, self.shared_secret, dummy_text, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
                     round_partner = self.partner
                     round_shared_secret = self.shared_secret
-                    round_plaintext = dummy_text
                     self.partner = None
                     self.partner_pubK = None
                     self.shared_secret = None
                     self.dead_drop_id = None
                 #add encryption
                 else:
+                    message = "> " + message
                     onion_packet, keys = encryption.onion_encrypt(self.round_number, self.shared_secret, message, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
                     round_partner = self.partner
                     round_shared_secret = self.shared_secret
-                    round_plaintext = message
         else:
             fake_dead_drop = os.urandom(16)
             fake_shared_secret = os.urandom(32)
@@ -236,7 +232,6 @@ class Client:
             onion_packet, keys = encryption.onion_encrypt(self.round_number, fake_shared_secret, dummy_text, fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK)
             round_partner = None
             round_shared_secret = None
-            round_plaintext = dummy_text
 
             if not self.outgoing_input.empty():
                 _ = self.outgoing_input.get()
@@ -246,7 +241,6 @@ class Client:
             "server_keys": keys,
             "shared_secret": round_shared_secret,
             "partner": round_partner,
-            "plaintext": round_plaintext
         }
         if len(self.round_state) > MAX_ROUNDS:
             oldest_round = min(self.round_state.keys())
