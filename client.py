@@ -55,6 +55,9 @@ class Client:
         self.server_client_sh_keys = []
         self.sock_lock = threading.Lock()
         self.phase = "WAIT"
+        self.want_new_partner = False
+        self.partner_lookup_in_progress = False
+        self.sock = sock
         #will not be considered an actual client until client registers
         self.register_user(self.public_key, sock)
         print(f"Your username is {self.username}")
@@ -81,7 +84,6 @@ class Client:
         parsed_user_signal = json.loads(data)
         while (parsed_user_signal["type"] != "USERNAME"):
             with self.sock_lock:
-                send_packet(sock, req_bytes)
                 print("CLIENT: waiting for username response")
                 data = recv_all(sock)
                 parsed_user_signal = json.loads(data)
@@ -94,40 +96,62 @@ class Client:
 
     #get the username of the person the client is communicating with
     def get_partner(self, sock):
-        self.partner = input("Enter the username of client you want to communicate with: ")
-        while (self.partner == "" or self.partner == '\n' ):
-                print("Not a valid user.")
-                self.partner = input("Enter the username of client you want to communicate with: ")
-        with self.sock_lock:
-            partner_pubK_req = {"type": "PARTNER_PUBLIC_KEY_REQUEST"}
-            req_bytes = json.dumps(partner_pubK_req).encode()
-            send_packet(sock, req_bytes)
-            data = recv_all(sock)
-        
-            print("CLIENT raw directory response:", data)
-            directory = json.loads(data)
-            print("CLIENT: parsed directory object:", directory)
-            print("CLIENT: keys in directory:", directory.keys())
-            if "users" not in directory:
-                print("Directory response missing 'users'")
-                return None
-            
-        while self.partner not in directory["users"]:
-            print("User does not exist. Please try again.")
+        self.partner_lookup_in_progress = True
+        try:
             self.partner = input("Enter the username of client you want to communicate with: ")
             while (self.partner == "" or self.partner == '\n' ):
-                print("Not a valid user.")
-                self.partner = input("Enter the username of client you want to communicate with: ")
+                    print("Not a valid user.")
+                    self.partner = input("Enter the username of client you want to communicate with: ")
+            with self.sock_lock:
+                partner_pubK_req = {"type": "PARTNER_PUBLIC_KEY_REQUEST"}
+                req_bytes = json.dumps(partner_pubK_req).encode()
+                send_packet(sock, req_bytes)
+                while True:
+                    data = recv_all(sock)
+                    try:
+                        directory = json.loads(data)
+                    except Exception:
+                        print("CLIENT: skipping non-JSON packet during directory lookup")
+                        continue
+                    directory = json.loads(data)
 
-        public_key_hex = directory["users"][self.partner]["public_key"]
-        public_key_bytes = bytes.fromhex(public_key_hex)
-        self.partner_pubK = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
-        self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
+                    # skip round control packets
+                    if directory.get("type") == ("START_SEND"):
+                        fake_dead_drop = os.urandom(16)
+                        fake_shared_secret = os.urandom(32)
+                        onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, fake_shared_secret, self.dummy_message(), fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK)
+                        send_packet(sock, onion_packet)
+                        continue
+                    if directory.get("type") == ("START_RECEIVE"):
+                        print("CLIENT: skipping round signal during directory lookup:", directory)
+                        continue
+
+                    break
+                if "users" not in directory:
+                    print("Directory response missing 'users'")
+                    return None
+                
+            while self.partner not in directory["users"]:
+                print("User does not exist. Please try again.")
+                self.partner = input("Enter the username of client you want to communicate with: ")
+                while (self.partner == "" or self.partner == '\n' ):
+                    print("Not a valid user.")
+                    self.partner = input("Enter the username of client you want to communicate with: ")
+
+            public_key_hex = directory["users"][self.partner]["public_key"]
+            public_key_bytes = bytes.fromhex(public_key_hex)
+            self.partner_pubK = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
+            self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
+        finally:
+            self.partner_lookup_in_progress = False
         return self.partner
 
     def listen(self, sock):
         count = 0
         while 1: 
+            if self.partner_lookup_in_progress:
+                time.sleep(0.05)
+                continue
             with self.sock_lock:
                 data = recv_all(sock)
             try:
@@ -135,6 +159,9 @@ class Client:
             except:
                 continue
             #parse json data and get round number
+            msg_type = parsed_json.get("type")
+            if msg_type is None:
+                continue
             if ((parsed_json["type"] != "START_SEND") and count == 0):
                 continue
             else:
@@ -146,12 +173,16 @@ class Client:
             elif (parsed_json["type"] == "START_RECEIVE"):
                 self.phase = "START_RECEIVE"
                 #here is where the client gets the packet and decrypts it 
-                if(self.partner != None and self.phase == "START_RECEIVE"):
+                if(self.partner != None and self.shared_secret is not None):
                     cipher_len = struct.unpack("!I", recv_msg(sock, 4))[0]
                     ciphertext = recv_msg(sock,cipher_len)
-                    plaintext_message = encryption.onion_decrypt(self.server_client_sh_keys, ciphertext, self.shared_secret, self.round_number)
-                    if plaintext_message is not None:
-                        print(f"{self.partner} > {plaintext_message.rstrip(b'\x00').decode(errors='ignore')}")
+                    try:
+                        plaintext_message = encryption.onion_decrypt(self.server_client_sh_keys, ciphertext, self.shared_secret, self.round_number)
+                        if plaintext_message is not None:
+                            print(f"{self.partner} > {plaintext_message.rstrip(b'\x00').decode(errors='ignore')}")
+                    except Exception as e:
+                        print("CLIENT decrypt failed:", type(e).__name__, e)
+
                 else:
                     #pretend to receive a message just dont print anything
                     cipher_len = struct.unpack("!I", recv_msg(sock, 4))[0]
@@ -189,12 +220,14 @@ class Client:
             else:
                 message = self.outgoing_input.get()
                 if message == "\\new partner":
-                    self.quit = False
+                    self.want_new_partner = True
                     fake_dead_drop = os.urandom(16)
                     fake_shared_secret = os.urandom(32)
-                    onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, fake_shared_secret, self.dummy_message(), fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK)
+                    onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(
+                        self.round_number, fake_shared_secret, self.dummy_message(),
+                        fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK
+                    )
                     send_packet(sock, onion_packet)
-                    self.get_partner(sock)
                 else:
                     fake_dead_drop = os.urandom(16)
                     fake_shared_secret = os.urandom(32)
@@ -212,7 +245,10 @@ class Client:
     def input_loop(self):
         while True:
             msg = input("> ")
-            self.outgoing_input.put(msg)
+            if msg == "\\new partner":
+                self.get_partner(self.sock)
+            else:
+                self.outgoing_input.put(msg)
 
 #def initiate_conection(client_2):
 
