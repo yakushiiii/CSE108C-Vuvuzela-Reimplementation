@@ -239,7 +239,7 @@ class Client:
         while True:
             msg = input("> ")
             if msg == "\\new partner":
-                self.get_partner(self.sock)
+                self.get_partner()
             else:
                 self.outgoing_input.put(msg)
 
