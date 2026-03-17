@@ -15,7 +15,7 @@ def dead_drop_swap(message_list):
 
     # Separate hash and message
     for i, message in enumerate(message_list):
-        dead_drop_hash = message[36:52]                      # first 32 bytes of message is the hash of the dead drop index
+        dead_drop_hash = message[0:16]                      # first 32 bytes of message is the hash of the dead drop index
     
         bucket_id = get_bucket_index(dead_drop_hash)
 
