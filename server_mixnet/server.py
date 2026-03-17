@@ -129,15 +129,15 @@ class Node:
     def batching(self, BATCHING):
         global round_number
 
-        batching_message = {
-            "type": "START_SEND",
-            "round_number": round_number  
-        }
-
-        batching_bytes = json.dumps(batching_message).encode("utf-8")
-        print("Batching Start Send")
-
         while True:
+            batching_message = {
+                "type": "START_SEND",
+                "round_number": round_number  
+            }
+
+            batching_bytes = json.dumps(batching_message).encode("utf-8")
+            print("Batching Start Send")
+            
             broadcast(batching_bytes)
             time.sleep(BATCHING)
             batch_list = []
@@ -285,7 +285,7 @@ class Node:
                     print(self.permutations)
 
                     # Unshuffle response
-                    unshuffled_batch, self.permutations = shuffle.unshuffle(returned_batch, self.permutations)
+                    unshuffled_batch = shuffle.unshuffle(returned_batch, self.permutations)
                     self.permutations = []
                     print("\nUnshuffled Batch: ")
                     print(unshuffled_batch)
