@@ -122,10 +122,9 @@ def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, r
     print("partner_shared_secret len:", len(partner_shared_secret) if partner_shared_secret is not None else None)
     #because of the way we need to receive sockets first struct should already be unpacked
     round_number = round_number.to_bytes(12, "big")
-    aesgcm_cipher = AESGCM(server_client_sh_keys[0])
-    payload = aesgcm_cipher.decrypt(round_number, onion_message, None)
+    payload = onion_message
     #now doing the rest of the lyares
-    for i in range(2):
+    for i in range(3):
         cipher_len = struct.unpack("!I", payload[:4])[0] 
         ciphertext = payload[4:4+cipher_len]
         aesgcm_cipher = AESGCM(server_client_sh_keys[i+1])
