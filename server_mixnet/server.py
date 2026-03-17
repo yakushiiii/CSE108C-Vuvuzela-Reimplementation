@@ -152,6 +152,9 @@ class Node:
                 print(batch_list)
                 print("\nConn List: ")
                 print(conn_list)
+            
+            if not batch_list:
+                continue
 
             receive_message = {
                 "type": "START_RECEIVE",
@@ -160,8 +163,6 @@ class Node:
             broadcast(receive_bytes)
             print("Start Receive")
                 
-            if not batch_list:
-                continue
             
             self.sh_key = []
             dcipher = []

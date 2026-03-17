@@ -1,5 +1,4 @@
-import asyncio
-from enum import Enum
+# Config
 
 SERVER_PORT = 9020
 connections = 0
