@@ -178,7 +178,6 @@ class Client:
                     ciphertext = recv_all(sock)
                 #here is where the client gets the packet and decrypts it 
                 if(self.partner != None and self.shared_secret is not None):
-                    print("ciphertext:", ciphertext)
                     try:
                         #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                         #ciphertext = ciphertext[4:4 + inner_len]

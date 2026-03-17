@@ -115,11 +115,6 @@ def onion_encrypt(round_number, encryption_key, message, dead_drop_id, serverA_p
     return outer, server_client_sh_keys
 
 def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, round_number):
-    print("\n========== ONION DECRYPT START ==========")
-    print("round_number (int):", round_number)
-    print("server_client_sh_keys count:", len(server_client_sh_keys) if server_client_sh_keys is not None else None)
-    print("incoming onion_message len:", len(onion_message) if onion_message is not None else None)
-    print("partner_shared_secret len:", len(partner_shared_secret) if partner_shared_secret is not None else None)
     #because of the way we need to receive sockets first struct should already be unpacked
     round_number = round_number.to_bytes(12, "big")
     payload = onion_message
@@ -127,7 +122,7 @@ def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, r
     for i in range(3):
         cipher_len = struct.unpack("!I", payload[:4])[0] 
         ciphertext = payload[4:4+cipher_len]
-        aesgcm_cipher = AESGCM(server_client_sh_keys[i+1])
+        aesgcm_cipher = AESGCM(server_client_sh_keys[i])
         payload = aesgcm_cipher.decrypt(round_number, ciphertext, None)
 
     #now decrypting the final inside layer
