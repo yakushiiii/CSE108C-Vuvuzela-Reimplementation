@@ -127,6 +127,9 @@ class Node:
         global round_number
 
         while True:
+
+            time.sleep(5)
+
             batching_message = {
                 "type": "START_SEND",
                 "round_number": round_number  
