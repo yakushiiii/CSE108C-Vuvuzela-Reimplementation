@@ -23,6 +23,7 @@ GLOBAL_SALT = b"vuvuzela protocol v1"
 GLOBAL_KEY_LEN = 32
 GLOBAL_MESSAGE_LEN = 256
 GLOBAL_ENCRYPTED_LEN = 468
+MAX_ROUNDS = 20
 
 server_A = "192.168.64.7"
 
@@ -52,12 +53,11 @@ class Client:
         self.shared_secret = None
         self.dead_drop_id = None
         self.round_number = None
-        self.server_client_sh_keys = []
         self.sock_lock = threading.Lock()
         self.phase = "WAIT"
-        self.want_new_partner = False
         self.partner_lookup_in_progress = False
         self.sock = sock
+        self.round_state = {}
         #will not be considered an actual client until client registers
         self.register_user(self.public_key, sock)
         print(f"Your username is {self.username}")
@@ -176,21 +176,26 @@ class Client:
                 self.phase = "START_RECEIVE"
                 with self.sock_lock:
                     ciphertext = recv_all(sock)
-                #here is where the client gets the packet and decrypts it 
-                if(self.partner != None and self.shared_secret is not None):
+                #here is where the client gets the packet and decrypts it
+                state = self.round_state.get(self.round_number) 
+                if state is None:
+                    continue
+                server_keys = state["server_keys"]
+                round_shared_secret = state["shared_secret"]
+                round_partner = state["partner"]
+                sent_plaintext = state["plaintext"]
+                if(round_partner != None and round_shared_secret is not None):
                     try:
                         #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                         #ciphertext = ciphertext[4:4 + inner_len]
-                        plaintext_message = encryption.onion_decrypt(self.server_client_sh_keys, ciphertext, self.shared_secret, self.round_number)
-                        if plaintext_message is not None:
-                            print(f"{self.partner} > {plaintext_message.rstrip(b'\x00').decode(errors='ignore')}")
-                        else:
-                            print("--------------DID NOT WORK---------------")
+                        plaintext_message = encryption.onion_decrypt(server_keys, ciphertext, round_shared_secret, self.round_number)
+                        if plaintext_message != None:
+                            received_text = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
+                            if sent_plaintext != received_text:
+                                print(f"{round_partner} > {received_text}")
                     except Exception as e:
                         print("CLIENT decrypt failed:", type(e).__name__, e)
-                else:
-                    #pretend to receive a message just dont print anything
-                    continue
+                self.round_state.pop(self.round_number, None)
                     
     #need just send dummy messages if there is no partner
     def send_message(self, sock):
@@ -199,29 +204,54 @@ class Client:
             raw_shared = self.private_key.exchange(self.partner_pubK)
             self.dead_drop_id = encryption.get_dead_drop_id(raw_shared, self.round_number)
             if self.outgoing_input.empty():
-                onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, self.shared_secret, self.dummy_message(), self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
+                dummy_text = self.dummy_message()
+                onion_packet, keys = encryption.onion_encrypt(self.round_number, self.shared_secret, dummy_text, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
+                round_partner = self.partner
+                round_shared_secret = self.shared_secret
+                round_plaintext = dummy_text
             else: 
                 message = self.outgoing_input.get()
+                round_plaintext = message
                 if message == "\\quit":
                     self.quit = True
-                    onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, self.shared_secret, self.dummy_message(), self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
+                    dummy_text = self.dummy_message()
+                    onion_packet, keys = encryption.onion_encrypt(self.round_number, self.shared_secret, dummy_text, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
+                    round_partner = self.partner
+                    round_shared_secret = self.shared_secret
+                    round_plaintext = dummy_text
                     self.partner = None
                     self.partner_pubK = None
                     self.shared_secret = None
                     self.dead_drop_id = None
                 #add encryption
                 else:
-                    onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, self.shared_secret, message, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
+                    onion_packet, keys = encryption.onion_encrypt(self.round_number, self.shared_secret, message, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
+                    round_partner = self.partner
+                    round_shared_secret = self.shared_secret
+                    round_plaintext = message
         else:
-            if self.outgoing_input.empty():
-                fake_dead_drop = os.urandom(16)
-                fake_shared_secret = os.urandom(32)
-                onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, fake_shared_secret, self.dummy_message(), fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK)
-            else:
-                message = self.outgoing_input.get()
-                fake_dead_drop = os.urandom(16)
-                fake_shared_secret = os.urandom(32)
-                onion_packet, self.server_client_sh_keys = encryption.onion_encrypt(self.round_number, fake_shared_secret, self.dummy_message(), fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK)
+            fake_dead_drop = os.urandom(16)
+            fake_shared_secret = os.urandom(32)
+            dummy_text = self.dummy_message()
+            onion_packet, keys = encryption.onion_encrypt(self.round_number, fake_shared_secret, dummy_text, fake_dead_drop, serverA_pubK, serverB_pubK, serverC_pubK)
+            round_partner = None
+            round_shared_secret = None
+            round_plaintext = dummy_text
+
+            if not self.outgoing_input.empty():
+                _ = self.outgoing_input.get()
+
+        #to solve problem of not being able to decrypt next couple of rounds after quit save the round state for the next couple of rounds
+        self.round_state[self.round_number] = {
+            "server_keys": keys,
+            "shared_secret": round_shared_secret,
+            "partner": round_partner,
+            "plaintext": round_plaintext
+        }
+        if len(self.round_state) > MAX_ROUNDS:
+            oldest_round = min(self.round_state.keys())
+            del self.round_state[oldest_round]
+
         with self.sock_lock:
             send_packet(sock, onion_packet)
 
