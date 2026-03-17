@@ -137,7 +137,7 @@ class Node:
 
             batching_bytes = json.dumps(batching_message).encode("utf-8")
             print("Batching Start Send")
-            
+
             broadcast(batching_bytes)
             time.sleep(BATCHING)
             batch_list = []
@@ -197,13 +197,11 @@ class Node:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.next_node.port))
 
-                    payload = pickle.dumps(shuffled)
-                    s.sendall(payload)
+                    send_packet(shuffled)
                     print("Sent to Next Node")
 
                     # Wait for response
-                    response_data = s.recv(4096)
-                    returned_batch = pickle.loads(response_data)
+                    returned_batch = recv_packet()
                     print(f"\nNext Node Received Data: ")
                     print(returned_batch)
 
@@ -242,10 +240,7 @@ class Node:
 
         # Receive batch from other server
         try:
-            data = conn.recv(4096)
-            if not data:
-                return
-            batch_list = pickle.loads(data)
+            batch_list = recv_packet()
 
             print("\nData Received from other server")
             print(batch_list)
@@ -271,12 +266,11 @@ class Node:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.connect((self.host, self.next_node.port))
                     print("connected to next node")
-                    s.sendall(pickle.dumps(shuffled_batch))
+                    send_packet(shuffled_batch)
                     print("Data Forwarded")
                     
                     # Get response from next node
-                    response_data = s.recv(4096)
-                    returned_batch = pickle.loads(response_data)
+                    returned_batch = recv_packet()
 
                     print("\nResponse from Node")
                     print(returned_batch)
@@ -300,7 +294,8 @@ class Node:
                     print("\nRe-encrypted Batch: ")
                     print(encrypted_batch)
 
-                    s.sendall(pickle.dumps(encrypted_batch))
+                    send_packet(encrypted_batch)
+
                     print("Data Forwarded")
                     # Clear public keys for current node
                     self.sh_key = []
@@ -329,7 +324,7 @@ class Node:
                 print(encrypted_batch)
 
                 # Send encrypted batch
-                conn.sendall(pickle.dumps(encrypted_batch))
+                send_packet(encrypted_batch)
                 print("Last Node sent back encrypted batch")
                 # Clear public keys for current node
                 self.sh_key = []
@@ -372,3 +367,6 @@ def recv_packet(sock: socket.socket):
     data_len = struct.unpack("!I", raw_len)[0]
     return recv_msg(sock, data_len)
             
+def send_packet(sock, obj):
+    payload = pickle.dumps(obj)
+    sock.sendall(struct.pack("!I", len(payload)) + payload)
