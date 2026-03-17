@@ -169,6 +169,13 @@ class Node:
             
             self.sh_key = []
             dcipher = []
+            print("\n--- SERVER LAYER DECRYPT INPUT ---")
+            print("round_number:", round_number)
+            print("payload type:", type(msg))
+            print("payload len:", len(msg) if msg is not None else None)
+            print("first 40 bytes:", msg[:40] if msg is not None else None)
+            print("round number:", round_number)
+            print("----------------------------------\n")
             for msg in batch_list:
                 decrypted_cipher, key = encryption.server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
