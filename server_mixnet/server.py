@@ -106,15 +106,6 @@ class Node:
                             clients.add(conn)
                             client_messages[conn] = None
 
-                    elif payload.get("type") == "PARTNER_PUBLIC_KEY_REQUEST":
-                        print(f"Directory Request from {addr}")
-                        with open(DIRECTORY_PATH, "r") as f:
-                            pay = json.load(f)
-
-                        payload_bytes = json.dumps(pay).encode("utf-8")
-                        send_client_packet(conn, payload_bytes)
-                        print(f"Sent Directory to {addr}")
-
                     else:
                         print("SERVER: ignoring unknown JSON packet")
                 except Exception as e:
@@ -128,7 +119,16 @@ class Node:
 
         while True:
 
-            time.sleep(5)
+            time.sleep(1)
+            print("Sending Out Directory")
+            with open(DIRECTORY_PATH, "r") as f:
+                pay = json.load(f)
+
+            payload_bytes = json.dumps(pay).encode("utf-8")
+            send_client_packet(conn, payload_bytes)
+            print(f"Sent Directory")
+
+            time.sleep(2)
 
             batching_message = {
                 "type": "START_SEND",
