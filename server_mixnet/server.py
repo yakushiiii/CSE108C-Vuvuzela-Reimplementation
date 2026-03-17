@@ -267,7 +267,7 @@ class Node:
                     print("Data Forwarded")
                     
                     # Get response from next node
-                    returned_batch = recv_server_packet()
+                    returned_batch = recv_server_packet(s)
 
                     print("\nResponse from Node")
                     print(returned_batch)
