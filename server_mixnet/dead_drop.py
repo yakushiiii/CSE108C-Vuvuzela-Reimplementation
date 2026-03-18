@@ -32,7 +32,7 @@ def dead_drop_swap(message_list):
             user_buckets[bucket_id] = (i, message)
         
     # If there are buckets which did not swap, fill with dummy messages
-    for bucket_id, (y, _msg) in user_buckets.items():
-        output[y] = os.urandom(GLOBAL_MESSAGE_LEN)
+    for bucket_id, (y, msg) in user_buckets.items():
+        output[y] = msg
 
     return output
