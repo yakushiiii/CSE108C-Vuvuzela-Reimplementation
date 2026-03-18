@@ -58,7 +58,7 @@ class Node:
                 try:
                     print("SERVER: waiting for packet")
                     data = recv_packet(conn)
-                    p#rint("SERVER: recv_packet returned:", data)
+                    #print("SERVER: recv_packet returned:", data)
 
                     if not data:
                         #print(f"received no data from {addr}")

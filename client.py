@@ -206,9 +206,9 @@ class Client:
                     #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                     #ciphertext = ciphertext[4:4 + inner_len]
                     try:
-                        print("recieved packet")
+                        #print("recieved packet")
                         plaintext_message = encryption.onion_decrypt(server_keys, ciphertext, round_shared_secret, self.round_number)
-                        print("decrypting packet")
+                        #print("decrypting packet")
                         plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
                         if plaintext_message != None and plaintext_message.startswith("> "):
                             print(f"\n{round_partner} {plaintext_message}")
@@ -217,7 +217,7 @@ class Client:
                             print(f"\n {plaintext_message}")
                     except: 
                         self.round_state.pop(self.round_number, None)
-                        print("did not work")   
+                        #print("did not work")   
                         continue                    
                 self.round_state.pop(self.round_number, None)
                     
