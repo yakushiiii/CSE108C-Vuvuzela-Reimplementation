@@ -46,10 +46,10 @@ threading.Thread(target=nodes[0].batching, args=(BATCHING,), daemon=True).start(
 # Clients connect here; we forward to node 0's handle_client
 # ---------------------------------------------------------------------------
 
-print(f"Front door listening on all 169.233.245.218:{SERVER_PORT}")
+print(f"Front door listening on all 172.20.10.13:{SERVER_PORT}") #CHANGE
 front = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 front.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-front.bind(("169.233.245.218", SERVER_PORT)) #so listens on all interfaces
+front.bind(("172.20.10.13", SERVER_PORT)) #so listens on all interfaces CHANGE
 front.listen()
 
 while True:

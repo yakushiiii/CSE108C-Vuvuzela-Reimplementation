@@ -12,16 +12,16 @@
     },
     "users": {
         "client0": {
-            "public_key": "6873a19aaa1d7bf99317af2dc68249587a8d6f9d216ba620ee67bb8fb89fc948"
+            "public_key": "8aac34a5c5d416a20d0c9dde6c45d3d80063a0b3cc12ec6fbc22fca7ad9c3811"
         },
         "client1": {
-            "public_key": "b535d3623a22278804272ec592dc81d160fe02aed5a5dfd42fbfd405f75efb02"
+            "public_key": "51e4a13172ea2eca4eef696e7a65dcfbe5c54bdc46630635967d8454f07c4779"
         },
         "client2": {
-            "public_key": "c4ce6201a65f1938e391c1634fecadccc4c436d0137d2ad2012b7e00c096ff5e"
+            "public_key": "26229d5e2626eddd8608ad7bed90013200185936ddd35b1ee9744363005d9d1e"
         },
         "client3": {
-            "public_key": "db994f48f7ee7ee0bb1ab2dbdfd7fe9c2e0af95240a67239f5f41fe9e44e8562"
+            "public_key": "08a5071cc01e77687b1df78313c868f509a0981447abcd1f8b04d11e73f78578"
         }
     }
 }
