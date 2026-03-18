@@ -193,6 +193,8 @@ class Client:
                         if plaintext_message != None and plaintext_message.startswith("> "):
                             print(f"\n{round_partner} {plaintext_message}")
                             print("> ", end="", flush=True)
+                        else:
+                            print(f"\n {plaintext_message}")
                     except: 
                         self.round_state.pop(self.round_number, None)   
                         continue                    
