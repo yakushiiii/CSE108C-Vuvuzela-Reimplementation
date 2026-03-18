@@ -119,15 +119,6 @@ class Node:
 
         while True:
 
-            time.sleep(1)
-            print("Sending Out Directory")
-            with open(DIRECTORY_PATH, "r") as f:
-                pay = json.load(f)
-
-            payload_bytes = json.dumps(pay).encode("utf-8")
-            send_client_packet(conn, payload_bytes)
-            print(f"Sent Directory")
-
             time.sleep(2)
 
             batching_message = {
@@ -234,6 +225,15 @@ class Node:
 
                     # Clear public keys for current node
                     self.sh_key = []
+
+                    time.sleep(1)
+                    print("Sending Out Directory")
+                    with open(DIRECTORY_PATH, "r") as f:
+                        pay = json.load(f)
+
+                    payload_bytes = json.dumps(pay).encode("utf-8")
+                    broadcast(conn, payload_bytes)
+                    print(f"Sent Directory")
 
 
     # Nodes > 0
