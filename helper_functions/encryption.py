@@ -118,12 +118,14 @@ def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, r
     #because of the way we need to receive sockets first struct should already be unpacked
     round_number = round_number.to_bytes(12, "big")
     payload = onion_message
+    print("attempting the decryption")
     #now doing the rest of the lyares
     for i in range(3):
         cipher_len = struct.unpack("!I", payload[:4])[0] 
         ciphertext = payload[4:4+cipher_len]
         aesgcm_cipher = AESGCM(server_client_sh_keys[i])
         payload = aesgcm_cipher.decrypt(round_number, ciphertext, None)
+    print("decrypted the onion layers")
 
     #now decrypting the final inside layer
     #if struct unpack error then dummy message
@@ -134,6 +136,7 @@ def onion_decrypt(server_client_sh_keys, onion_message, partner_shared_secret, r
     ciphertext = payload[20:20+cipher_len]
     aesgcm_cipher = AESGCM(partner_shared_secret)
     payload = aesgcm_cipher.decrypt(round_number, ciphertext, None)
+    print("decrypted the inner layres")
     return payload
 
 # ---------------------------

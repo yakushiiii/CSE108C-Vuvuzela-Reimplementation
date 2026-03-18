@@ -198,7 +198,8 @@ class Client:
                         else:
                             print(f"\n {plaintext_message}")
                     except: 
-                        self.round_state.pop(self.round_number, None)   
+                        self.round_state.pop(self.round_number, None)
+                        print("did not work")   
                         continue                    
                 self.round_state.pop(self.round_number, None)
                     
