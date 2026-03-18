@@ -209,6 +209,7 @@ class Client:
                 onion_packet, keys = encryption.onion_encrypt(self.round_number, self.shared_secret, dummy_text, self.dead_drop_id, serverA_pubK, serverB_pubK, serverC_pubK)
                 round_partner = self.partner
                 round_shared_secret = self.shared_secret
+                print("Dummy Message Sent")
             else: 
                 message = self.outgoing_input.get()
                 if message == "\\quit":
