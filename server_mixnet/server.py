@@ -232,7 +232,7 @@ class Node:
                         pay = json.load(f)
 
                     payload_bytes = json.dumps(pay).encode("utf-8")
-                    broadcast(conn, payload_bytes)
+                    broadcast(payload_bytes)
                     print(f"Sent Directory")
 
 

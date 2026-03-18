@@ -25,7 +25,7 @@ GLOBAL_MESSAGE_LEN = 256
 GLOBAL_ENCRYPTED_LEN = 468
 MAX_ROUNDS = 20
 
-server_A = "192.168.64.7"
+server_A = "169.233.245.218" #CHANGE
 
 #just saving these locally because they are long term keys
 serverA_pubK = x25519.X25519PublicKey.from_public_bytes(bytes.fromhex(
@@ -187,11 +187,15 @@ class Client:
                 if(round_partner != None and round_shared_secret is not None):
                     #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                     #ciphertext = ciphertext[4:4 + inner_len]
-                    plaintext_message = encryption.onion_decrypt(server_keys, ciphertext, round_shared_secret, self.round_number)
-                    plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
-                    if plaintext_message != None and plaintext_message.startswith("> "):
-                        print(f"\n{round_partner} {plaintext_message}")
-                        print("> ", end="", flush=True)                        
+                    try:
+                        plaintext_message = encryption.onion_decrypt(server_keys, ciphertext, round_shared_secret, self.round_number)
+                        plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
+                        if plaintext_message != None and plaintext_message.startswith("> "):
+                            print(f"\n{round_partner} {plaintext_message}")
+                            print("> ", end="", flush=True)
+                    except: 
+                        self.round_state.pop(self.round_number, None)   
+                        continue                    
                 self.round_state.pop(self.round_number, None)
                     
     #need just send dummy messages if there is no partner
