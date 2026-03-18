@@ -55,9 +55,10 @@ class Client:
         self.round_number = None
         self.sock_lock = threading.Lock()
         self.phase = "WAIT"
-        self.partner_lookup_in_progress = False
         self.sock = sock
         self.round_state = {}
+        self.want_partner = False
+        self.latest_directory = None
         #will not be considered an actual client until client registers
         self.register_user(self.public_key, sock)
         print(f"Your username is {self.username}")
@@ -96,13 +97,28 @@ class Client:
 
     #get the username of the person the client is communicating with
     def get_partner(self):
-        self.partner_lookup_in_progress = True
-        try:
-            self.partner = input("Enter the username of client you want to communicate with: ")
-            while self.partner == "" or self.partner == "\n":
-                print("Not a valid user.")
-                self.partner = input("Enter the username of client you want to communicate with: ")
+        self.want_partner = True
+        wanted = input("Enter the username of client you want to communicate with: ")
+        while wanted == "" or wanted == "\n":
+            print("Not a valid user.")
+            wanted = input("Enter the username of client you want to communicate with: ")
 
+        self.partner = wanted
+
+        if self.latest_directory is not None:
+            if self.partner not in self.latest_directory["users"]:
+                print("User does not exist. Please try again.")
+                self.partner = None
+                self.want_partner = False
+                return
+
+            public_key_hex = self.latest_directory["users"][self.partner]["public_key"]
+            public_key_bytes = bytes.fromhex(public_key_hex)
+            self.partner_pubK = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
+            self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
+            self.want_partner = False
+            print(f"Now communicating with {self.partner}")
+        """"
             with open("directory.json", "r") as f:
                 parsed_json = json.load(f)
 
@@ -129,7 +145,7 @@ class Client:
 
         finally:
             self.partner_lookup_in_progress = False
-        """"
+        
         with self.sock_lock:
             partner_pubK_req = {"type": "PARTNER_PUBLIC_KEY_REQUEST"}
             req_bytes = json.dumps(partner_pubK_req).encode()
@@ -145,22 +161,24 @@ class Client:
                 parsed_json = json.loads(data)
             except:
                 continue
-            """"
+            
             if isinstance(parsed_json, dict) and "users" in parsed_json:
-                if self.partner not in parsed_json["users"]:
-                    print("User does not exist. Please try again.")
-                    self.partner_lookup_in_progress = False
-                    self.partner = None
-                    continue
+                self.latest_directory = parsed_json
+                if self.want_partner == True:
+                    if self.partner not in parsed_json["users"]:
+                        print("User does not exist. Please try again.")
+                        self.partner = None
+                        self.want_partner = False
+                        continue
 
-                public_key_hex = parsed_json["users"][self.partner]["public_key"]
-                public_key_bytes = bytes.fromhex(public_key_hex)
-                self.partner_pubK = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
-                self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
-                self.partner_lookup_in_progress = False
-                print(f"Now communicating with {self.partner}")
+                    public_key_hex = parsed_json["users"][self.partner]["public_key"]
+                    public_key_bytes = bytes.fromhex(public_key_hex)
+                    self.partner_pubK = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
+                    self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
+                    self.want_partner = False
+                    print(f"Now communicating with {self.partner}")
                 continue
-            """
+            
             #parse json data and get round number
             msg_type = parsed_json.get("type")
             if msg_type is None:
