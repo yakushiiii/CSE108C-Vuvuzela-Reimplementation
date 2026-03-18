@@ -275,7 +275,7 @@ class Client:
     def dummy_message(self):
         #dummy message is just going to be a bunch of random bytes. If the cleint can't decrypt the message using the shared key then that is how we know it is a dummy message to nothing will be displayed
         alphabet = string.ascii_letters + string.digits
-        return ''.join(secrets.choice(alphabet) for i in range(116))
+        return ''.join(secrets.choice(alphabet) for i in range(256))
         #onion encrypt this
         
     

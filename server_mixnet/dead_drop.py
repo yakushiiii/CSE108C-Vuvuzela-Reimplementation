@@ -1,6 +1,6 @@
 # Dead Drop
 
-import os
+import os, string, secrets
 from config import GLOBAL_MESSAGE_LEN, NUM_BUCKETS
 
 # Buckets in dead drop
@@ -45,6 +45,6 @@ def dead_drop_swap(message_list):
         
     # If there are buckets which did not swap, fill with dummy messages
     for bucket_id, (y, msg) in user_buckets.items():
-        output[y] = msg
+        output[y] = os.urandom(GLOBAL_MESSAGE_LEN)
 
     return output
