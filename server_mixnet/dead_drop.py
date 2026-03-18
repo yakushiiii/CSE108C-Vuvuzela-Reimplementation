@@ -8,6 +8,10 @@ def get_bucket_index(dead_drop_hash):
     # Returns index of bucket for this message
     hash_to_int = int.from_bytes(dead_drop_hash, byteorder='big')
     bucket_id = hash_to_int % NUM_BUCKETS
+    print("\n\n\n\n\nDead Drop Hash: ")
+    print(dead_drop_hash)
+    print("\n\n\n\nBucket ID: ")
+    print(bucket_id)
     return bucket_id
 
 # Use dead drop to swap locations of the messages with the same bucket id
