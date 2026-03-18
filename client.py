@@ -188,7 +188,7 @@ class Client:
                     #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                     #ciphertext = ciphertext[4:4 + inner_len]
                     try:
-                        ("recieved packet")
+                        print("recieved packet")
                         plaintext_message = encryption.onion_decrypt(server_keys, ciphertext, round_shared_secret, self.round_number)
                         print("decrypting packet")
                         plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
