@@ -17,18 +17,26 @@ def dead_drop_swap(message_list):
 
     # Separate hash and message
     for i, message in enumerate(message_list):
-        dead_drop_hash = message[0:16]                      # first 32 bytes of message is the hash of the dead drop index
+        dead_drop_hash = message[:16]                      # first 32 bytes of message is the hash of the dead drop index
     
         bucket_id = get_bucket_index(dead_drop_hash)
 
         # If there is a message in the bucket, swap
         if bucket_id in user_buckets:
             match_index, match_message = user_buckets.pop(bucket_id)
+            print("\n\nThese messages should match: ")
+            print(match_message)
+            print(message)
+            print("\n\n\n")
+            print("Bucket ID: ")
+            print(bucket_id)
+            print("\n\n\n\n")
             output[i] = match_message
             output[match_index] = message
 
         # If no messages are in the bucket, insert
         else:
+            print("\n\n\n\nNo messages in bucket\n\n\n\n")
             user_buckets[bucket_id] = (i, message)
         
     # If there are buckets which did not swap, fill with dummy messages
