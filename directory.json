@@ -12,10 +12,10 @@
     },
     "users": {
         "client0": {
-            "public_key": "0ad4d1d9ff362ab8c04f910f225db36af98635392b379054d0d52656a303d40e"
+            "public_key": "3b27d4be1598fa9ed79967e61e98d69cd26728b4f119ac8118bafb21194f2568"
         },
         "client1": {
-            "public_key": "5ab8117fd19a6d684f0eba8765821b060e07348c24aab694e45749482559722f"
+            "public_key": "179fdc782437cf7ba61b60e6c307b456a000178a47480de6f416e317f3190d1d"
         },
         "client2": {
             "public_key": "173474bd4ecacedfae2613761108607407c24fc9acd07b85e60b5dac84dc232c"
