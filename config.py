@@ -4,7 +4,7 @@ SERVER_PORT = 9020
 connections = 0
 MAX_ROUND = 100000
 BATCHING = 5
-NUM_BUCKETS = 4
+NUM_BUCKETS = 100
 NUMBER_NODES = 3
 
 #encryption global variables
