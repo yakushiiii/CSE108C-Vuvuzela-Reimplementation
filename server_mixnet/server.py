@@ -117,6 +117,19 @@ class Node:
 
             time.sleep(2)
 
+            print("Sending Out Directory")
+            with open(DIRECTORY_PATH, "r") as f:
+                pay = json.load(f)
+
+            payload_bytes = json.dumps(pay).encode("utf-8")
+            for conn in client_messages:
+                try:
+                    send_client_packet(conn, payload_bytes)
+                except:
+                    print("client could not be sent directory")
+        
+            print(f"Sent Directory")
+
             batching_message = {
                 "type": "START_SEND",
                 "round_number": round_number  
@@ -201,19 +214,6 @@ class Node:
                     self.sh_key = []
 
                     time.sleep(1)
-                    print("Sending Out Directory")
-                    with open(DIRECTORY_PATH, "r") as f:
-                        pay = json.load(f)
-
-                    payload_bytes = json.dumps(pay).encode("utf-8")
-                    for conn in client_messages:
-                        try:
-                            send_client_packet(conn, payload_bytes)
-                        except:
-                            print("client could not be sent directory")
-
-                    client_messages[conn] = None
-                    print(f"Sent Directory")
 
 
     # Nodes > 0
