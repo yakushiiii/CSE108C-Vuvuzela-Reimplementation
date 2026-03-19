@@ -25,6 +25,10 @@ GLOBAL_MESSAGE_LEN = 256
 GLOBAL_ENCRYPTED_LEN = 468
 MAX_ROUNDS = 20
 
+# Auto client mode variables
+AUTO_MODE = True
+NUM_CLIENTS = 50
+
 server_A = "169.233.123.148" #CHANGE
 
 #just saving these locally because they are long term keys
@@ -247,12 +251,21 @@ class Client:
         
     
     def input_loop(self):
-        while True:
-            msg = input("> ")
-            if msg == "\\new partner":
-                self.get_partner()
-            else:
-                self.outgoing_input.put(msg)
+        # Clients in the terminal
+        if not AUTO_MODE:
+            while True:
+                msg = input("> ")
+                if msg == "\\new partner":
+                    self.get_partner()
+                else:
+                    self.outgoing_input.put(msg)
+        # Automated clients
+        else:
+            while True:
+                time.sleep(secrets.randbelow(5) + 1)
+                if self.partner is not None:
+                    self.outgoing_input.put(f"hello from {self.username}")
+
 
 #def initiate_conection(client_2):
 
@@ -272,26 +285,36 @@ def send_packet(sock, payload: bytes):
 def recv_all(sock):
     msg_len = struct.unpack("!I", recv_msg(sock, 4))[0]
     return recv_msg(sock, msg_len)
-            
-if __name__ == "__main__":
-    #create socket and connect to server
+
+def start_client():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((server_A, config.SERVER_PORT))
-
-    print("Welcome to our anonymouse private metadata messaging service!")
-    print("Please ensure you leave this program running in the background in order to maintain privacy. If you terminate this program your username will alse be reassigned.")
-    print("Also note there is about a 10-20 second latency for message sending/recieving.")
-    print("Type: '\\new partner' to start messaging someone")
-
     client = Client(sock)
     threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
     threading.Thread(target=client.input_loop, daemon=True).start()
+    return client
+            
+if __name__ == "__main__":
+    # Non-automated clients
+    if not AUTO_MODE:
+        #create socket and connect to server
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((server_A, config.SERVER_PORT))
+
+        print("Welcome to our anonymouse private metadata messaging service!")
+        print("Please ensure you leave this program running in the background in order to maintain privacy. If you terminate this program your username will alse be reassigned.")
+        print("Also note there is about a 10-20 second latency for message sending/recieving.")
+        print("Type: '\\new partner' to start messaging someone")
+
+        client = Client(sock)
+        threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
+        threading.Thread(target=client.input_loop, daemon=True).start()
 
 
-    while True:
-        time.sleep(1)
-
-
-
-
-
+        while True:
+            time.sleep(1)
+    # Automated clients
+    else:
+        clients = []
+        for i in range(NUM_CLIENTS):
+            clients.append(start_client())
