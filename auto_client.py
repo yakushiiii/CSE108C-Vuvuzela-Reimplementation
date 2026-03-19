@@ -28,7 +28,7 @@ GLOBAL_ENCRYPTED_LEN = 468
 MAX_ROUNDS = 20
 
 # Auto client mode variables
-AUTO_MODE = True
+AUTO_MODE = False
 NUM_CLIENTS = 50
 
 server_A =  config.SERVER_IP_ADDRESS #CHANGE
@@ -213,7 +213,7 @@ class Client:
                     with open(self.log_file, "a", newline="") as f:
                         writer = csv.writer(f)
                         writer.writerow([self.round_number, send_time, recv_time, rtt, status])
-                    print(f"[{self.username}] RECV round {self.round_number} at {recv_time:.3f} status={status} rtt={rtt:.3f}")
+                    #print(f"[{self.username}] RECV round {self.round_number} at {recv_time:.3f} status={status} rtt={rtt:.3f}")
                 if(round_partner != None and round_shared_secret is not None):
                     #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                     #ciphertext = ciphertext[4:4 + inner_len]
@@ -289,7 +289,7 @@ class Client:
 
         send_time = time.time()
         self.round_send_times[self.round_number] = send_time
-        print(f"[{self.username}] SENT round {self.round_number} at {send_time:.3f}")
+        #print(f"[{self.username}] SENT round {self.round_number} at {send_time:.3f}")
 
 
     def dummy_message(self):
