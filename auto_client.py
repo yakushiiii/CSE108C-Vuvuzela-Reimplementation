@@ -380,7 +380,7 @@ if __name__ == "__main__":
         # pair clients (0↔1, 2↔3, ...)
         for i in range(0, NUM_CLIENTS, 2):
             c1 = clients[i]
-            c2 = clients[i + 1]
+            c2 = clients[(i + 1) % NUM_CLIENTS]
 
             c1.partner = c2.username
             c2.partner = c1.username
