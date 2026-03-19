@@ -138,7 +138,7 @@ class Client:
                 if r in self.round_received:
                     continue
 
-                if current_time - send_time > 2.0:
+                if current_time - send_time > 10.0:
                     if r not in self.round_logged_missed:
                         self.round_logged_missed.add(r)
                         print(f"[{self.username}] MISSED round {r}")
