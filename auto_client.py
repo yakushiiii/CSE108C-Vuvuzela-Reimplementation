@@ -65,6 +65,7 @@ class Client:
         self.round_state = {}
         self.want_partner = False
         self.latest_directory = None
+        self.directory_ready = threading.Event()
         #will not be considered an actual client until client registers
         self.register_user(self.public_key, sock)
         print(f"Your username is {self.username}")
@@ -161,6 +162,7 @@ class Client:
             
             if isinstance(parsed_json, dict) and "users" in parsed_json:
                 self.latest_directory = parsed_json
+                self.directory_ready.set()
                 if self.want_partner == True:
                     if self.partner not in parsed_json["users"]:
                         print("User does not exist. Please try again.")
@@ -271,10 +273,7 @@ class Client:
 
             if not self.outgoing_input.empty():
                 _ = self.outgoing_input.get()
-        send_time = time.time()
-        self.round_send_times[self.round_number] = send_time
-        print(f"[{self.username}] SENT round {self.round_number} at {send_time:.3f}")
-
+        
         #to solve problem of not being able to decrypt next couple of rounds after quit save the round state for the next couple of rounds
         self.round_state[self.round_number] = {
             "server_keys": keys,
@@ -287,6 +286,11 @@ class Client:
 
         with self.sock_lock:
             send_packet(sock, onion_packet)
+
+        send_time = time.time()
+        self.round_send_times[self.round_number] = send_time
+        print(f"[{self.username}] SENT round {self.round_number} at {send_time:.3f}")
+
 
     def dummy_message(self):
         #dummy message is just going to be a bunch of random bytes. If the cleint can't decrypt the message using the shared key then that is how we know it is a dummy message to nothing will be displayed
@@ -307,7 +311,7 @@ class Client:
         # Automated clients
         else:
             while True:
-                time.sleep(secrets.randbelow(5) + 1)
+                time.sleep(secrets.randbelow(10) + 1)
                 if self.partner is not None:
                     self.outgoing_input.put(f"hello from {self.username}")
 
@@ -375,7 +379,8 @@ if __name__ == "__main__":
             time.sleep(0.05)  # avoid thundering herd
 
         # wait for directory broadcast
-        time.sleep(5)
+        for c in clients:
+            c.directory_ready.wait(timeout=10)  # wait for directory
 
         # pair clients (0↔1, 2↔3, ...)
         for i in range(0, NUM_CLIENTS, 2):
