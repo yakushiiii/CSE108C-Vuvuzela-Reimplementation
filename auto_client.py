@@ -29,7 +29,7 @@ MAX_ROUNDS = 20
 
 # Auto client mode variables
 AUTO_MODE = True
-NUM_CLIENTS = 100
+NUM_CLIENTS = 500
 
 server_A =  config.SERVER_IP_ADDRESS #CHANGE
 

@@ -310,7 +310,7 @@ class Node:
 
     def start(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("169.233.227.161", self.port)) #CHANGE
+            s.bind((SERVER_IP_ADDRESS, self.port)) #CHANGE
             s.listen()
             print(f"Node {self.id} listening on port {self.port}")
 
