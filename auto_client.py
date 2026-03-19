@@ -386,7 +386,7 @@ if __name__ == "__main__":
             c2.partner = c1.username
 
             # wait until directory arrives
-            while c1.latest_directory is None:
+            while c1.latest_directory is None or c2.username not in c1.latest_directory["users"]:
                 time.sleep(0.1)
                 assert c1.latest_directory is not None, "Directory never received"
 
