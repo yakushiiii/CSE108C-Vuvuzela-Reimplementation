@@ -118,39 +118,6 @@ class Client:
             self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
             self.want_partner = False
             print(f"Now communicating with {self.partner}")
-        """"
-            with open("directory.json", "r") as f:
-                parsed_json = json.load(f)
-
-            if "users" not in parsed_json:
-                print("directory.json is missing 'users'")
-                self.partner = None
-                return None
-
-            while self.partner not in parsed_json["users"]:
-                print("User does not exist. Please try again.")
-                self.partner = input("Enter the username of client you want to communicate with: ")
-                while self.partner == "" or self.partner == "\n":
-                    print("Not a valid user.")
-                    self.partner = input("Enter the username of client you want to communicate with: ")
-
-            public_key_hex = parsed_json["users"][self.partner]["public_key"]
-            public_key_bytes = bytes.fromhex(public_key_hex)
-            self.partner_pubK = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
-            self.shared_secret = encryption.shared_secret(self.private_key, self.partner_pubK)
-            self.partner_lookup_in_progress = False
-            print(f"Now communicating with {self.partner}")
-            print(f"Caution: please allow at least a minute to receive all partner messages before you quit, if not they will be lost.")
-            return self.partner
-
-        finally:
-            self.partner_lookup_in_progress = False
-        
-        with self.sock_lock:
-            partner_pubK_req = {"type": "PARTNER_PUBLIC_KEY_REQUEST"}
-            req_bytes = json.dumps(partner_pubK_req).encode()
-            send_packet(sock, req_bytes)
-        """
 
     def listen(self, sock):
         count = 0
@@ -324,33 +291,5 @@ if __name__ == "__main__":
     while True:
         time.sleep(1)
 
-"""
--------------------
-Vuvuzela Encryption
--------------------
 
-2 types of encryption:
-    1. Message encryption (between users, used to encrypt the actual chat message)
-    2. Onion encrpytion (between client and server, used to hide which dead drop the message goes to)
 
-Step 1:
-    Users generate a shared secret using Diffie Hellman(client_1_private, client_2_public) to produce a shared symmetrc key
-Step 2:
-    Compute the Dead Drop ID computed by hashing the shared secret + round number (so this changes every round)
-Step 3:
-    Encrypt the message using the shared secret computed earlier using Diffie Hellman.
-Step 4: 
-    Onion encrypt the message + dead_drop_id for every server, one layer on top of the other. For each server the client creates an ephemeral key pair and sends the encrypted message with the public key, so the server can compute a shared secret and then decrypt.
-"""
-
-"""""
-def try_decrypt(key, nonce, ciphertext):
-    aesgcm = AESGCM(key)
-    try:
-        plaintext = aesgcm.decrypt(nonce, ciphertext, None)
-        return plaintext
-    except Exception:
-        return None
-
-result = try_decrypt(key, nonce, ciphertext)"
-"""

@@ -21,13 +21,6 @@ from cryptography.hazmat.primitives import serialization, hashes
 # Client Encryption Functions
 # ---------------------------
 
-"""
-#creating a shared secret
-def shared_secret(self_private_key, other_public_key):
-    shared_key = self_private_key.exchange(other_public_key)
-    return shared_key
-"""
-
 def generate_key_pair():
     private_key = x25519.X25519PrivateKey.generate()
     public_key = private_key.public_key()
