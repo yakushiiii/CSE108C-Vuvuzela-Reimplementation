@@ -28,8 +28,8 @@ GLOBAL_ENCRYPTED_LEN = 468
 MAX_ROUNDS = 20
 
 # Auto client mode variables
-AUTO_MODE = False
-NUM_CLIENTS = 50
+AUTO_MODE = True
+NUM_CLIENTS = 100
 
 server_A =  config.SERVER_IP_ADDRESS #CHANGE
 

@@ -17,6 +17,8 @@ import threading
 import queue
 import time
 import config
+import csv
+import random
 
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
@@ -24,6 +26,10 @@ GLOBAL_KEY_LEN = 32
 GLOBAL_MESSAGE_LEN = 256
 GLOBAL_ENCRYPTED_LEN = 468
 MAX_ROUNDS = 20
+
+# Auto client mode variables
+AUTO_MODE = False
+NUM_CLIENTS = 100
 
 server_A =  config.SERVER_IP_ADDRESS #CHANGE
 
@@ -59,10 +65,18 @@ class Client:
         self.round_state = {}
         self.want_partner = False
         self.latest_directory = None
+        self.directory_ready = threading.Event()
         #will not be considered an actual client until client registers
         self.register_user(self.public_key, sock)
         print(f"Your username is {self.username}")
         #to start server threading and peristent listening for server signals
+        self.log_file = f"log_{self.username}_{int(time.time())}.csv"        
+        self.round_send_times = {}
+        self.round_received = set()
+        self.round_logged_missed = set()
+        with open(self.log_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["round", "send_time", "recv_time", "rtt", "status"])
         
 
     #registers user by sending the information the server needs to add them to the the directory json
@@ -119,6 +133,23 @@ class Client:
             self.want_partner = False
             print(f"Now communicating with {self.partner}")
 
+    def missed_loop(self):
+        while True:
+            current_time = time.time()
+            for r, send_time in list(self.round_send_times.items()):
+                if r in self.round_received:
+                    continue
+
+                if current_time - send_time > 10.0:
+                    if r not in self.round_logged_missed:
+                        self.round_logged_missed.add(r)
+                        print(f"[{self.username}] MISSED round {r}")
+                        with open(self.log_file, "a", newline="") as f:
+                            writer = csv.writer(f)
+                            writer.writerow([r, send_time, "", "", "missed"])
+            x = random.randint(1, 20)
+            time.sleep(x)
+
     def listen(self, sock):
         count = 0
         while 1: 
@@ -131,6 +162,7 @@ class Client:
             
             if isinstance(parsed_json, dict) and "users" in parsed_json:
                 self.latest_directory = parsed_json
+                self.directory_ready.set()
                 if self.want_partner == True:
                     if self.partner not in parsed_json["users"]:
                         print("User does not exist. Please try again.")
@@ -150,8 +182,6 @@ class Client:
             msg_type = parsed_json.get("type")
             if msg_type is None:
                 continue
-            if ((parsed_json["type"] != "START_SEND") and count == 0):
-                continue
             else:
                 count += 1
             if (parsed_json["type"] == "START_SEND"):
@@ -163,12 +193,27 @@ class Client:
                 with self.sock_lock:
                     ciphertext = recv_all(sock)
                 #here is where the client gets the packet and decrypts it
+                self.round_received.add(self.round_number)
                 state = self.round_state.get(self.round_number) 
                 if state is None:
                     continue
                 server_keys = state["server_keys"]
                 round_shared_secret = state["shared_secret"]
                 round_partner = state["partner"]
+                recv_time = time.time()
+                send_time = self.round_send_times.get(self.round_number)
+
+                if send_time:
+                    rtt = recv_time - send_time
+                    status = "success"
+
+                    if rtt > 10.0:
+                        status = "late"
+
+                    with open(self.log_file, "a", newline="") as f:
+                        writer = csv.writer(f)
+                        writer.writerow([self.round_number, send_time, recv_time, rtt, status])
+                    #print(f"[{self.username}] RECV round {self.round_number} at {recv_time:.3f} status={status} rtt={rtt:.3f}")
                 if(round_partner != None and round_shared_secret is not None):
                     #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                     #ciphertext = ciphertext[4:4 + inner_len]
@@ -179,6 +224,9 @@ class Client:
                         plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
                         if plaintext_message != None and plaintext_message.startswith("> "):
                             print(f"\n{round_partner} {plaintext_message}")
+                            with open(self.log_file, "a", newline="") as f:
+                                writer = csv.writer(f)
+                                writer.writerow([f"sender: {round_partner}, message: {plaintext_message}"])
                             print("> ", end="", flush=True)
                     except: 
                         self.round_state.pop(self.round_number, None)
@@ -225,7 +273,7 @@ class Client:
 
             if not self.outgoing_input.empty():
                 _ = self.outgoing_input.get()
-
+        
         #to solve problem of not being able to decrypt next couple of rounds after quit save the round state for the next couple of rounds
         self.round_state[self.round_number] = {
             "server_keys": keys,
@@ -239,6 +287,11 @@ class Client:
         with self.sock_lock:
             send_packet(sock, onion_packet)
 
+        send_time = time.time()
+        self.round_send_times[self.round_number] = send_time
+        #print(f"[{self.username}] SENT round {self.round_number} at {send_time:.3f}")
+
+
     def dummy_message(self):
         #dummy message is just going to be a bunch of random bytes. If the cleint can't decrypt the message using the shared key then that is how we know it is a dummy message to nothing will be displayed
         alphabet = string.ascii_letters + string.digits
@@ -247,12 +300,21 @@ class Client:
         
     
     def input_loop(self):
-        while True:
-            msg = input("> ")
-            if msg == "\\new partner":
-                self.get_partner()
-            else:
-                self.outgoing_input.put(msg)
+        # Clients in the terminal
+        if not AUTO_MODE:
+            while True:
+                msg = input("> ")
+                if msg == "\\new partner":
+                    self.get_partner()
+                else:
+                    self.outgoing_input.put(msg)
+        # Automated clients
+        else:
+            while True:
+                time.sleep(secrets.randbelow(10) + 1)
+                if self.partner is not None:
+                    self.outgoing_input.put(f"hello from {self.username}")
+
 
 #def initiate_conection(client_2):
 
@@ -272,26 +334,77 @@ def send_packet(sock, payload: bytes):
 def recv_all(sock):
     msg_len = struct.unpack("!I", recv_msg(sock, 4))[0]
     return recv_msg(sock, msg_len)
-            
-if __name__ == "__main__":
-    #create socket and connect to server
+
+def start_client():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((server_A, config.SERVER_PORT))
 
-    print("Welcome to our anonymouse private metadata messaging service!")
-    print("Please ensure you leave this program running in the background in order to maintain privacy. If you terminate this program your username will alse be reassigned.")
-    print("Also note there is about a 10-20 second latency for message sending/recieving.")
-    print("Type: '\\new partner' to start messaging someone")
+    client = Client.__new__(Client)
+    client.sock = sock
+    client.sock_lock = threading.Lock()
 
-    client = Client(sock)
+    Client.__init__(client, sock)
+
     threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
     threading.Thread(target=client.input_loop, daemon=True).start()
+    threading.Thread(target=client.missed_loop, daemon=True).start()
+
+    return client
+            
+if __name__ == "__main__":
+    # Non-automated clients
+    if not AUTO_MODE:
+        #create socket and connect to server
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((server_A, config.SERVER_PORT))
+
+        print("Welcome to our anonymouse private metadata messaging service!")
+        print("Please ensure you leave this program running in the background in order to maintain privacy. If you terminate this program your username will alse be reassigned.")
+        print("Also note there is about a 10-20 second latency for message sending/recieving.")
+        print("Type: '\\new partner' to start messaging someone")
+
+        client = Client(sock)
+        threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
+        threading.Thread(target=client.input_loop, daemon=True).start()
 
 
-    while True:
-        time.sleep(1)
+        while True:
+            time.sleep(1)
+    # Automated clients
+    else:
+        clients = []
 
+        for _ in range(NUM_CLIENTS):
+            clients.append(start_client())
+            time.sleep(0.05)  # avoid thundering herd
 
+        # wait for directory broadcast
+        for c in clients:
+            c.directory_ready.wait(timeout=10)  # wait for directory
 
+        # pair clients (0↔1, 2↔3, ...)
+        for i in range(0, NUM_CLIENTS, 2):
+            c1 = clients[i]
+            c2 = clients[(i + 1) % NUM_CLIENTS]
 
+            c1.partner = c2.username
+            c2.partner = c1.username
 
+            # wait until directory arrives
+            while c1.latest_directory is None or c2.username not in c1.latest_directory["users"]:
+                time.sleep(0.1)
+                assert c1.latest_directory is not None, "Directory never received"
+
+            c1.partner_pubK = x25519.X25519PublicKey.from_public_bytes(
+                bytes.fromhex(c1.latest_directory["users"][c2.username]["public_key"])
+            )
+            c2.partner_pubK = x25519.X25519PublicKey.from_public_bytes(
+                bytes.fromhex(c2.latest_directory["users"][c1.username]["public_key"])
+            )
+
+            c1.shared_secret = encryption.shared_secret(c1.private_key, c1.partner_pubK)
+            c2.shared_secret = encryption.shared_secret(c2.private_key, c2.partner_pubK)
+
+        print(f"Spawned {NUM_CLIENTS} automated clients.")
+        while True:
+            time.sleep(1)
