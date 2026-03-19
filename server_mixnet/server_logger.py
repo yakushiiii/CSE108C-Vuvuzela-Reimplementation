@@ -1,3 +1,4 @@
+# Incomplete Server Logger
 import json, time, os, threading
 
 LOG_DIR = "logs"

@@ -14,7 +14,7 @@ import socket
 
 
 from server_mixnet import server
-from config import BATCHING, NUMBER_NODES, SERVER_PORT
+from config import BATCHING, NUMBER_NODES, SERVER_PORT, SERVER_IP_ADDRESS
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +47,7 @@ threading.Thread(target=nodes[0].batching, args=(BATCHING,), daemon=True).start(
 print(f"Front door listening on all 169.233.227.161:{SERVER_PORT}") #CHANGE
 front = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 front.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-front.bind(("169.233.227.161", SERVER_PORT)) #so listens on all interfaces CHANGE
+front.bind((SERVER_IP_ADDRESS, SERVER_PORT)) #so listens on all interfaces CHANGE
 front.listen()
 
 while True:
