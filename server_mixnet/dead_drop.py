@@ -8,8 +8,6 @@ def get_bucket_index(dead_drop_hash):
     # Returns index of bucket for this message
     hash_to_int = int.from_bytes(dead_drop_hash, byteorder='big')
     bucket_id = hash_to_int % NUM_BUCKETS
-    print("\n\n\n\n\nDead Drop Hash: ")
-    print(dead_drop_hash)
     print("\n\n\n\nBucket ID: ")
     print(bucket_id)
     return bucket_id
@@ -28,13 +26,6 @@ def dead_drop_swap(message_list):
         # If there is a message in the bucket, swap
         if bucket_id in user_buckets:
             match_index, match_message = user_buckets.pop(bucket_id)
-            print("\n\nThese messages should match: ")
-            print(match_message)
-            print(message)
-            print("\n\n\n")
-            print("Bucket ID: ")
-            print(bucket_id)
-            print("\n\n\n\n")
             output[i] = match_message
             output[match_index] = message
 
