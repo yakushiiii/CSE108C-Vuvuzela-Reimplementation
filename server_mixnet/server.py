@@ -58,18 +58,13 @@ class Node:
                 try:
                     print("SERVER: waiting for packet")
                     data = recv_packet(conn)
-                    #print("SERVER: recv_packet returned:", data)
 
                     if not data:
-                        #print(f"received no data from {addr}")
                         break
 
                     try:
-                        #print("SERVER: recv_packet returned:", data)
                         print("SERVER: decoding packet")
                         payload = json.loads(data.decode("utf-8"))
-                        #print("SERVER: parsed payload:", payload)
-                        #print("SERVER: payload type is", payload.get("type"))
                     except (UnicodeDecodeError, json.JSONDecodeError):
                         with clients_lock:
                             client_messages[conn] = data
@@ -142,11 +137,6 @@ class Node:
                     batch_list.append(msg)
                     client_messages[conn] = None
             
-                #print("Batch List: ")
-                #print(batch_list)
-                #print("\nConn List: ")
-                #print(conn_list)
-            
             if not batch_list:
                 continue
 
@@ -160,29 +150,12 @@ class Node:
             
             self.sh_key = []
             dcipher = []
-            '''print("\n--- SERVER LAYER DECRYPT INPUT ---")
-            print("round_number:", round_number)
-            print("payload type:", type(msg))
-            print("payload len:", len(msg) if msg is not None else None)
-            print("first 40 bytes:", msg[:40] if msg is not None else None)
-            print("round number:", round_number)
-            print("----------------------------------\n")'''
             for msg in batch_list:
                 decrypted_cipher, key = encryption.server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
                 self.sh_key.append(key)
             
-            #print("\nSh_keys: ")
-            #print(self.sh_key)
-            #print("\n Decrypted ciphertext")
-            #print(dcipher)
-            
             shuffled, self.permutations = shuffle.shuffle(dcipher)
-
-            #print("\n Permutations: ")
-            #print(self.permutations)
-            #print("\n Shuffled ciphertext")
-            #print(shuffled)
 
             # Forward decrypted data to next node
             if self.next_node:
@@ -254,11 +227,6 @@ class Node:
                 decrypted_cipher, key = encryption.server_layer_decryption(self.private_key, msg, round_number)
                 dcipher.append(decrypted_cipher)
                 self.sh_key.append(key)
-            
-            #print("\nData decrypted: ")
-            #print(dcipher)
-            #print("\nSh Keys: ")
-            #print(self.sh_key)
 
             # Shuffle Batch
             shuffled_batch, self.permutations = shuffle.shuffle(dcipher)
@@ -307,13 +275,9 @@ class Node:
                 # Shuffle and Swap
                 swap = dead_drop.dead_drop_swap(shuffled_batch)
                 print("\nSwapped messages: ")
-                #print(swap)
-                #print("\nPermutation: ")
-                #print(self.permutations)
+
                 unshuffled_batch = shuffle.unshuffle(swap, self.permutations)
                 self.permutations = []
-                #print("\nUnshuffled Batch: ")
-                #print(unshuffled_batch)
                 
                 # Re-encrypt batch
                 encrypted_batch = []
