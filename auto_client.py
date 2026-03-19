@@ -30,7 +30,7 @@ MAX_ROUNDS = 20
 AUTO_MODE = True
 NUM_CLIENTS = 50
 
-server_A = "169.233.227.161" #CHANGE
+server_A = "169.233.123.148" #CHANGE
 
 #just saving these locally because they are long term keys
 serverA_pubK = x25519.X25519PublicKey.from_public_bytes(bytes.fromhex(
@@ -177,8 +177,6 @@ class Client:
             #parse json data and get round number
             msg_type = parsed_json.get("type")
             if msg_type is None:
-                continue
-            if ((parsed_json["type"] != "START_SEND") and count == 0):
                 continue
             else:
                 count += 1
@@ -331,10 +329,17 @@ def recv_all(sock):
 def start_client():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((server_A, config.SERVER_PORT))
-    client = Client(sock)
+
+    client = Client.__new__(Client)
+    client.sock = sock
+    client.sock_lock = threading.Lock()
+
     threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
+
+    Client.__init__(client, sock)
     threading.Thread(target=client.input_loop, daemon=True).start()
     threading.Thread(target=client.missed_loop, daemon=True).start()
+
     return client
             
 if __name__ == "__main__":
@@ -358,38 +363,38 @@ if __name__ == "__main__":
             time.sleep(1)
     # Automated clients
     else:
-        if __name__ == "__main__":
-            clients = []
+        clients = []
 
-            for _ in range(NUM_CLIENTS):
-                clients.append(start_client())
-                time.sleep(0.05)  # avoid thundering herd
+        for _ in range(NUM_CLIENTS):
+            clients.append(start_client())
+            time.sleep(0.05)  # avoid thundering herd
 
-            # wait for directory broadcast
-            time.sleep(5)
+        # wait for directory broadcast
+        time.sleep(5)
 
-            # pair clients (0↔1, 2↔3, ...)
-            for i in range(0, NUM_CLIENTS, 2):
-                c1 = clients[i]
-                c2 = clients[i + 1]
+        # pair clients (0↔1, 2↔3, ...)
+        for i in range(0, NUM_CLIENTS, 2):
+            c1 = clients[i]
+            c2 = clients[i + 1]
 
-                c1.partner = c2.username
-                c2.partner = c1.username
+            c1.partner = c2.username
+            c2.partner = c1.username
 
-                # wait until directory arrives
-                while c1.latest_directory is None:
-                    time.sleep(0.1)
+            # wait until directory arrives
+            while c1.latest_directory is None:
+                time.sleep(0.1)
+                assert c1.latest_directory is not None, "Directory never received"
 
-                c1.partner_pubK = x25519.X25519PublicKey.from_public_bytes(
-                    bytes.fromhex(c1.latest_directory["users"][c2.username]["public_key"])
-                )
-                c2.partner_pubK = x25519.X25519PublicKey.from_public_bytes(
-                    bytes.fromhex(c2.latest_directory["users"][c1.username]["public_key"])
-                )
+            c1.partner_pubK = x25519.X25519PublicKey.from_public_bytes(
+                bytes.fromhex(c1.latest_directory["users"][c2.username]["public_key"])
+            )
+            c2.partner_pubK = x25519.X25519PublicKey.from_public_bytes(
+                bytes.fromhex(c2.latest_directory["users"][c1.username]["public_key"])
+            )
 
-                c1.shared_secret = encryption.shared_secret(c1.private_key, c1.partner_pubK)
-                c2.shared_secret = encryption.shared_secret(c2.private_key, c2.partner_pubK)
+            c1.shared_secret = encryption.shared_secret(c1.private_key, c1.partner_pubK)
+            c2.shared_secret = encryption.shared_secret(c2.private_key, c2.partner_pubK)
 
-            print(f"Spawned {NUM_CLIENTS} automated clients.")
-            while True:
-                time.sleep(1)
+        print(f"Spawned {NUM_CLIENTS} automated clients.")
+        while True:
+            time.sleep(1)
