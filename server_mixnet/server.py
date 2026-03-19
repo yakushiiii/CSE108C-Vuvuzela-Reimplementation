@@ -6,6 +6,7 @@ from helper_functions import shuffle, encryption
 from keys import keys
 import pickle, time, struct, json, os
 from server_mixnet import server_logger
+from config import SERVER_IP_ADDRESS
 
 clients = set()
 clients_lock = threading.Lock()
@@ -42,7 +43,7 @@ class Node:
         self.prev_node = prev_node
         self.next_node = next_node
         self.private_key = keys[node_id][0]
-        self.host = "169.233.227.161" #CHANGE
+        self.host = SERVER_IP_ADDRESS #CHANGE
         self.sh_key = []
         self.permutations = []
         self._lock = threading.Lock()

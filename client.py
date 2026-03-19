@@ -25,7 +25,7 @@ GLOBAL_MESSAGE_LEN = 256
 GLOBAL_ENCRYPTED_LEN = 468
 MAX_ROUNDS = 20
 
-server_A = "169.233.227.161" #CHANGE
+server_A =  config.SERVER_IP_ADDRESS #CHANGE
 
 #just saving these locally because they are long term keys
 serverA_pubK = x25519.X25519PublicKey.from_public_bytes(bytes.fromhex(

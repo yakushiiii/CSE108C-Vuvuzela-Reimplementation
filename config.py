@@ -6,6 +6,7 @@ MAX_ROUND = 100000
 BATCHING = 5
 NUM_BUCKETS = 100
 NUMBER_NODES = 3
+SERVER_IP_ADDRESS = "169.233.227.161"
 
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
