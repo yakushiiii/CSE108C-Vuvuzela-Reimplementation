@@ -41,7 +41,7 @@ class Node:
         self.prev_node = prev_node
         self.next_node = next_node
         self.private_key = keys[node_id][0]
-        self.host = "169.233.123.148" #CHANGE
+        self.host = "169.233.227.161" #CHANGE
         self.sh_key = []
         self.permutations = []
         self._lock = threading.Lock()
@@ -302,7 +302,7 @@ class Node:
 
     def start(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("169.233.123.148", self.port)) #CHANGE
+            s.bind(("169.233.227.161", self.port)) #CHANGE
             s.listen()
             print(f"Node {self.id} listening on port {self.port}")
 
