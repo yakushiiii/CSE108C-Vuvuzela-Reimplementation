@@ -17,6 +17,7 @@ import threading
 import queue
 import time
 import config
+import csv
 
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
@@ -67,6 +68,13 @@ class Client:
         self.register_user(self.public_key, sock)
         print(f"Your username is {self.username}")
         #to start server threading and peristent listening for server signals
+        self.log_file = f"log_{self.username}_{int(time.time())}.csv"        
+        self.round_send_times = {}
+        self.round_received = set()
+        self.round_logged_missed = set()
+        with open(self.log_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["round", "send_time", "recv_time", "rtt", "status"])
         
 
     #registers user by sending the information the server needs to add them to the the directory json
@@ -123,6 +131,22 @@ class Client:
             self.want_partner = False
             print(f"Now communicating with {self.partner}")
 
+    def missed_loop(self):
+        while True:
+            current_time = time.time()
+            for r, send_time in list(self.round_send_times.items()):
+                if r in self.round_received:
+                    continue
+
+                if current_time - send_time > 2.0:
+                    if r not in self.round_logged_missed:
+                        self.round_logged_missed.add(r)
+                        print(f"[{self.username}] MISSED round {r}")
+                        with open(self.log_file, "a", newline="") as f:
+                            writer = csv.writer(f)
+                            writer.writerow([r, send_time, "", "", "missed"])
+            time.sleep(0.1)
+
     def listen(self, sock):
         count = 0
         while 1: 
@@ -167,12 +191,27 @@ class Client:
                 with self.sock_lock:
                     ciphertext = recv_all(sock)
                 #here is where the client gets the packet and decrypts it
+                self.round_received.add(self.round_number)
                 state = self.round_state.get(self.round_number) 
                 if state is None:
                     continue
                 server_keys = state["server_keys"]
                 round_shared_secret = state["shared_secret"]
                 round_partner = state["partner"]
+                recv_time = time.time()
+                send_time = self.round_send_times.get(self.round_number)
+
+                if send_time:
+                    rtt = recv_time - send_time
+                    status = "success"
+
+                    if rtt > 2.0:
+                        status = "late"
+
+                    with open(self.log_file, "a", newline="") as f:
+                        writer = csv.writer(f)
+                        writer.writerow([self.round_number, send_time, recv_time, rtt, status])
+                    print(f"[{self.username}] RECV round {self.round_number} at {recv_time:.3f} status={status} rtt={rtt:.3f}")
                 if(round_partner != None and round_shared_secret is not None):
                     #inner_len = struct.unpack("!I", ciphertext[:4])[0]
                     #ciphertext = ciphertext[4:4 + inner_len]
@@ -229,6 +268,9 @@ class Client:
 
             if not self.outgoing_input.empty():
                 _ = self.outgoing_input.get()
+        send_time = time.time()
+        self.round_send_times[self.round_number] = send_time
+        print(f"[{self.username}] SENT round {self.round_number} at {send_time:.3f}")
 
         #to solve problem of not being able to decrypt next couple of rounds after quit save the round state for the next couple of rounds
         self.round_state[self.round_number] = {
@@ -292,6 +334,7 @@ def start_client():
     client = Client(sock)
     threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
     threading.Thread(target=client.input_loop, daemon=True).start()
+    threading.Thread(target=client.missed_loop, daemon=True).start()
     return client
             
 if __name__ == "__main__":
