@@ -130,6 +130,7 @@ class Node:
                     print("client could not be sent directory")
         
             print(f"Sent Directory")
+            time.sleep(BATCHING)
 
             batching_message = {
                 "type": "START_SEND",
