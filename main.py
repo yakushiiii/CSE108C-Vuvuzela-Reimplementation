@@ -11,8 +11,6 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import threading
 import socket
-import struct
-import json
 
 
 from server_mixnet import server

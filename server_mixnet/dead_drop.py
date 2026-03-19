@@ -1,6 +1,6 @@
 # Dead Drop
 
-import os, string, secrets
+import os
 from config import GLOBAL_MESSAGE_LEN, NUM_BUCKETS
 
 # Buckets in dead drop
