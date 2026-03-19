@@ -5,6 +5,7 @@ from server_mixnet import dead_drop
 from helper_functions import shuffle, encryption
 from keys import keys
 import pickle, time, struct, json, os
+from server_mixnet import server_logger
 
 clients = set()
 clients_lock = threading.Lock()
