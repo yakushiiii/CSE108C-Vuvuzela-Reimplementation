@@ -28,7 +28,7 @@ MAX_ROUNDS = 20
 
 # Auto client mode variables
 AUTO_MODE = True
-NUM_CLIENTS = 50
+NUM_CLIENTS = 10
 
 server_A = "169.233.227.161" #CHANGE
 
@@ -334,9 +334,9 @@ def start_client():
     client.sock = sock
     client.sock_lock = threading.Lock()
 
-    threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
-
     Client.__init__(client, sock)
+
+    threading.Thread(target=client.listen, args=(sock,), daemon=True).start()
     threading.Thread(target=client.input_loop, daemon=True).start()
     threading.Thread(target=client.missed_loop, daemon=True).start()
 

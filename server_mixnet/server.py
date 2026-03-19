@@ -206,9 +206,9 @@ class Node:
                         pay = json.load(f)
 
                     payload_bytes = json.dumps(pay).encode("utf-8")
-                    for conn in conn_list:
-                        send_client_packet(conn, payload_bytes)
+                    broadcast(payload_bytes)
                     print(f"Sent Directory")
+                    print("Sent Directory to all clients")
 
 
     # Nodes > 0
