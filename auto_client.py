@@ -18,6 +18,7 @@ import queue
 import time
 import config
 import csv
+import random
 
 #encryption global variables
 GLOBAL_SALT = b"vuvuzela protocol v1"
@@ -28,7 +29,7 @@ MAX_ROUNDS = 20
 
 # Auto client mode variables
 AUTO_MODE = True
-NUM_CLIENTS = 10
+NUM_CLIENTS = 50
 
 server_A =  config.SERVER_IP_ADDRESS #CHANGE
 
@@ -145,7 +146,8 @@ class Client:
                         with open(self.log_file, "a", newline="") as f:
                             writer = csv.writer(f)
                             writer.writerow([r, send_time, "", "", "missed"])
-            time.sleep(0.1)
+            x = random.randint(1, 20)
+            time.sleep(x)
 
     def listen(self, sock):
         count = 0
@@ -203,7 +205,7 @@ class Client:
                     rtt = recv_time - send_time
                     status = "success"
 
-                    if rtt > 2.0:
+                    if rtt > 10.0:
                         status = "late"
 
                     with open(self.log_file, "a", newline="") as f:
@@ -220,6 +222,9 @@ class Client:
                         plaintext_message = plaintext_message.rstrip(b"\x00").decode(errors="ignore")
                         if plaintext_message != None and plaintext_message.startswith("> "):
                             print(f"\n{round_partner} {plaintext_message}")
+                            with open(self.log_file, "a", newline="") as f:
+                                writer = csv.writer(f)
+                                writer.writerow([f"sender: {round_partner}, message: {plaintext_message}"])
                             print("> ", end="", flush=True)
                     except: 
                         self.round_state.pop(self.round_number, None)
