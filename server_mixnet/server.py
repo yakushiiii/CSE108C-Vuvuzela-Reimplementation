@@ -116,7 +116,7 @@ class Node:
 
         while True:
 
-            time.sleep(2)
+            time.sleep(BATCHING)
 
             print("Sending Out Directory")
             with open(DIRECTORY_PATH, "r") as f:
@@ -132,6 +132,8 @@ class Node:
             print(f"Sent Directory")
             time.sleep(BATCHING)
 
+            time.sleep(BATCHING)
+            
             batching_message = {
                 "type": "START_SEND",
                 "round_number": round_number  
@@ -214,8 +216,6 @@ class Node:
 
                     # Clear public keys for current node
                     self.sh_key = []
-
-                    time.sleep(1)
 
 
     # Nodes > 0

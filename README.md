@@ -1,3 +1,8 @@
+Our implementation can serve up to 17 users at a time. 
+
+
+
+
 ----------------------------------
 How the Vuvuzela Encryption works:
 ----------------------------------

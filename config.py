@@ -3,8 +3,13 @@
 SERVER_PORT = 9020
 connections = 0
 MAX_ROUND = 100000
+<<<<<<< Updated upstream
 BATCHING = 2
 NUM_BUCKETS = 800
+=======
+BATCHING = 3
+NUM_BUCKETS = 100
+>>>>>>> Stashed changes
 NUMBER_NODES = 3
 SERVER_IP_ADDRESS = "10.0.0.56"
 
