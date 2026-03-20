@@ -29,7 +29,7 @@ MAX_ROUNDS = 20
 
 # Auto client mode variables
 AUTO_MODE = True
-NUM_CLIENTS = 600
+NUM_CLIENTS = 500
 
 server_A =  config.SERVER_IP_ADDRESS #CHANGE
 
@@ -386,6 +386,8 @@ if __name__ == "__main__":
         for i in range(0, NUM_CLIENTS, 2):
             c1 = clients[i]
             c2 = clients[(i + 1) % NUM_CLIENTS]
+            if i == NUM_CLIENTS:
+                c2 = clients[0]
 
             c1.partner = c2.username
             c2.partner = c1.username
