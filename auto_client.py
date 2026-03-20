@@ -29,11 +29,8 @@ MAX_ROUNDS = 20
 
 # Auto client mode variables
 AUTO_MODE = True
-<<<<<<< Updated upstream
 NUM_CLIENTS = 500
-=======
-NUM_CLIENTS = 17
->>>>>>> Stashed changes
+
 
 server_A =  config.SERVER_IP_ADDRESS #CHANGE
 
@@ -277,11 +274,8 @@ class Client:
 
             if not self.outgoing_input.empty():
                 _ = self.outgoing_input.get()
-<<<<<<< Updated upstream
         
-=======
 
->>>>>>> Stashed changes
         #to solve problem of not being able to decrypt next couple of rounds after quit save the round state for the next couple of rounds
         self.round_state[self.round_number] = {
             "server_keys": keys,
@@ -397,13 +391,9 @@ if __name__ == "__main__":
         # pair clients (0↔1, 2↔3, ...)
         for i in range(0, NUM_CLIENTS, 2):
             c1 = clients[i]
-<<<<<<< Updated upstream
             c2 = clients[(i + 1) % NUM_CLIENTS]
             if i == NUM_CLIENTS:
                 c2 = clients[0]
-=======
-            c2 = clients[(i + 1) % NUM_CLIENTS] 
->>>>>>> Stashed changes
 
             c1.partner = c2.username
             c2.partner = c1.username
