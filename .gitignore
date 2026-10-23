@@ -1,6 +1,4 @@
 misc.py
-keys.py
-config.py
 __pycache__/
 helper_functions/__pycache__/
 server_mixnet/__pycache__/
