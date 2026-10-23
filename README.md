@@ -1,4 +1,4 @@
-# CSE108C Vuvuzela Reimplementation
+# Vuvuzela Reimplementation
  
 A Python reimplementation of **Vuvuzela**, a private messaging system that hides communication metadata (who is talking to whom, and whether anyone is talking at all) from a global network adversary. Built for CSE 108C.
  
