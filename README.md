@@ -66,17 +66,22 @@ Clients must already know their partner's assigned username (`client0`, `client1
  
 We ran 50, 100, 200, and 500 automated clients for 20 rounds each. The automated clients act as cover traffic: they run the same client framework and send messages through the mixnet every round. For each message we recorded round number, start time, received time, round trip time, and status (`success`, `missed`, or `late`). Raw logs are in the `log_<N>_users/` folders, and `graphing.py` makes the figures.
  
-![Average round trip time](figures/fig1.png)
-- **Figure 1:** average round trip time by user count.
+<img src="figures/fig1.png" alt="Average round trip time" width="30%">
 
-![Rate of successful, missed, and late messages](figures/fig2.png)
-- **Figure 2:** rate of successful, missed, and late messages.
+**Figure 1:** average round trip time by user count.
 
-![Latency distribution for 50 users](figures/fig3.png)
-![Latency distribution for 100 users](figures/fig4.png)
-![Latency distribution for 200 users](figures/fig5.png)
-![Latency distribution for 500 users](figures/fig6.png)
-- **Figures 3-6:** latency histograms per user count.
+<img src="figures/fig2.png" alt="Rate of successful, missed, and late messages" width="30%">
+
+**Figure 2:** rate of successful, missed, and late messages.
+
+<img src="figures/fig3.png" alt="Latency distribution for 50 users" width="30%">
+<img src="figures/fig4.png" alt="Latency distribution for 100 users" width="30%"> 
+
+<img src="figures/fig4.png" alt="Latency distribution for 200 users" width="30%">
+<img src="figures/fig6.png" alt="Latency distribution for 500 users" width="31%">
+
+**Figures 3-6:** latency histograms per user count.
+
 **Findings:** latency stayed between about 1 and 3 seconds even at 500 users, with only a slight increase from 50 to 500. Every message was delivered on time at every user count, with no missed rounds. Consistent timing regardless of whether a real message is being sent is what makes real and dummy traffic hard to tell apart.
  
 ## Limitations and Future Work
