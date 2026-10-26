@@ -1,6 +1,6 @@
 # Vuvuzela Reimplementation
  
-A Python reimplementation of **Vuvuzela**, a private messaging system that hides communication metadata (who is talking to whom, and whether anyone is talking at all) from a global network adversary. Built for CSE 108C.
+A Python reimplementation of **Vuvuzela**, a private messaging system that hides communication metadata (who is talking to whom, and whether anyone is talking at all) from a global network adversary.
  
 Original paper: van den Hooff, Lazar, Zaharia, and Zeldovich. *Vuvuzela: Scalable private messaging resistant to traffic analysis.* SOSP '15, pp. 137-152.
  
@@ -86,10 +86,10 @@ We ran 50, 100, 200, and 500 automated clients for 20 rounds each. The automated
  
 ## Limitations and Future Work
  
-- **Directory scaling:** sending and parsing the full directory every round is the main bottleneck. The practical limit appears to be about 500 clients at a 2-second delay (batching time is configurable).
-- **No dialing protocol:** clients must already know each other's usernames.
-- **Cover traffic is simple:** automated clients just replicate the mixnet framework, and their traffic isn't varied.
-- **Hardcoded keys:** for convenience, the long-term server and client keys are hardcoded in `keys.py` rather than generated. They are for demo use only and are not secure. A real deployment would generate keys, and servers would rotate theirs each round.
-- **Fixed client-side node count:** encryption and the client support exactly 3 nodes.
-- **No server rotation.**
-- The client directory isn't reset when the server restarts.
+- **Directory scaling:** sending and parsing the full directory every round is the main bottleneck. The practical limit appears to be about 500 clients at a 2-second delay (batching time is configurable)
+- **No dialing protocol:** clients must already know each other's usernames
+- **Cover traffic is simple:** automated clients just replicate the mixnet framework, and their traffic isn't varied
+- **Hardcoded keys:** for convenience, the long-term server and client keys are hardcoded in `keys.py` rather than generated. They are for demo use only and are not secure. A real deployment would generate keys, and servers would rotate theirs each round
+- **Fixed client-side node count:** encryption and the client support exactly 3 nodes
+- **No server rotation**
+- The client directory isn't reset when the server restarts
